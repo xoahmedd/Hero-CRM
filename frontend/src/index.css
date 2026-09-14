@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Doppio+One&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --font-display: 'DM Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-background: #f0f4f8;
+  --color-foreground: #0d1b3e;
+  --color-card: #ffffff;
+  --color-card-foreground: #0d1b3e;
+  --color-primary: #1a3896;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f0f4f8;
+  --color-secondary-foreground: #3b5080;
+  --color-muted: #e8edf5;
+  --color-muted-foreground: #5a6e94;
+  --color-accent: #4a8220;
+  --color-accent-foreground: #ffffff;
+  --color-border: #d4dce9;
+  --color-ring: #1a3896;
+  --color-sidebar: #0d1b3e;
+  --color-sidebar-foreground: #a8bcd8;
+  --color-sidebar-active: #1a3896;
+  --radius: 0.5rem;
+
+  --color-hero-blue: #1a3896;
+  --color-hero-green: #4a8220;
+
+  --color-status-todo: #94a3b8;
+  --color-status-inprogress: #1a3896;
+  --color-status-review: #d97706;
+  --color-status-completed: #4a8220;
+  --color-status-cancelled: #dc2626;
+  --color-status-overdue: #dc2626;
+
+  --color-priority-low: #4a8220;
+  --color-priority-medium: #d97706;
+  --color-priority-high: #dc2626;
+  --color-priority-urgent: #7c3aed;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

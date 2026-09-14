@@ -1,0 +1,35 @@
+using Domain.Entities.Collaborations;
+using Domain.Entities.Projects;
+using Domain.Enums;
+
+namespace Domain.Entities.Tasks
+{
+    public class TaskItem : BaseEntity
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public TaskItemStatus Status { get; set; } = TaskItemStatus.Todo;
+        public TaskPriority Priority { get; set; } = TaskPriority.Medium;
+        public int ProjectId { get; set; }
+        public int CreatedById { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string? MissedDeadlineReason { get; set; }
+        public string? ReasonCategory { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+
+
+        public Project Project { get; set; } = null!;
+        public ICollection<TaskAssignee> Assignees { get; set; }
+            = new List<TaskAssignee>();
+        public ICollection<SubTask> SubTasks { get; set; }
+            = new List<SubTask>();
+        public ICollection<Comment> Comments { get; set; }
+            = new List<Comment>();
+        public ICollection<Attachment> Attachments { get; set; }
+            = new List<Attachment>();
+        public ICollection<TaskTag> TaskTags { get; set; }
+            = new List<TaskTag>();
+    }
+
+}

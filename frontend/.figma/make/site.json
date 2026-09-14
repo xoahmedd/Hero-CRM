@@ -1,0 +1,10 @@
+{
+  "description": "Streamline your design workflow with an intuitive platform that allows users to create, collaborate, and manage projects seamlessly.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
