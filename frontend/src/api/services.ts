@@ -103,6 +103,7 @@ export const projectsApi = {
           avatar: m.profileImage || (m.fullName ? m.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
         })),
         memberIds: (p.members || []).map((m: any) => m.userId),
+        createdAt: p.createdAt || (p.startDate ? p.startDate : undefined),
       };
     });
   },
@@ -135,6 +136,7 @@ export const projectsApi = {
         avatar: m.profileImage || (m.fullName ? m.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
       })),
       memberIds: (p.members || []).map((m: any) => m.userId),
+      createdAt: p.createdAt || (p.startDate ? p.startDate : undefined),
     };
   },
 

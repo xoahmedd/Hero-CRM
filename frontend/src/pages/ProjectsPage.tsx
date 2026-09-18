@@ -135,10 +135,17 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       return matchSearch && matchStatus && matchPriority;
     })
     .sort((a, b) => {
-      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-      if (timeA !== timeB) return timeA - timeB;
-      return b.id - a.id;
+      if (statusFilter === "In Progress") {
+        const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        if (timeA !== timeB) return timeA - timeB;
+        return b.id - a.id;
+      } else {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.startDate ? new Date(a.startDate).getTime() : 0);
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.startDate ? new Date(b.startDate).getTime() : 0);
+        if (dateA !== dateB) return dateB - dateA;
+        return b.id - a.id;
+      }
     });
 
   async function handleCreate() {
@@ -307,7 +314,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
             Projects
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
-            Showing {filtered.length} of {assignedProjects.length} {isAdmin ? "total projects" : "assigned projects"}
+            Showing {filtered.length} of {assignedProjects.length} {isAdmin ? "total projects" : "assigned projects"} • Sorted by {statusFilter === "In Progress" ? "nearest due date" : "newest added"}
           </p>
         </div>
         <div>

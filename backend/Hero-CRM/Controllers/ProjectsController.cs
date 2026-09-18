@@ -173,10 +173,22 @@ namespace Hero_CRM.Controllers
                 }
 
                 var totalCount = await query.CountAsync();
-                var pagedProjects = await query
-                    .OrderBy(p => p.DueDate == null)
-                    .ThenBy(p => p.DueDate)
-                    .ThenByDescending(p => p.CreatedAt)
+
+                IOrderedQueryable<Project> orderedPagedQuery;
+                if (status.HasValue && (status.Value == ProjectStatus.InProgress || status.Value == ProjectStatus.Working))
+                {
+                    orderedPagedQuery = query
+                        .OrderBy(p => p.DueDate == null)
+                        .ThenBy(p => p.DueDate)
+                        .ThenByDescending(p => p.CreatedAt);
+                }
+                else
+                {
+                    orderedPagedQuery = query
+                        .OrderByDescending(p => p.CreatedAt);
+                }
+
+                var pagedProjects = await orderedPagedQuery
                     .Skip(((pageIndex ?? 1) - 1) * (pageSize ?? 20))
                     .Take(pageSize ?? 20)
                     .ToListAsync();
@@ -194,11 +206,21 @@ namespace Hero_CRM.Controllers
                     responses));
             }
 
-            var projects = await query
-                .OrderBy(p => p.DueDate == null)
-                .ThenBy(p => p.DueDate)
-                .ThenByDescending(p => p.CreatedAt)
-                .ToListAsync();
+            IOrderedQueryable<Project> orderedProjects;
+            if (status.HasValue && (status.Value == ProjectStatus.InProgress || status.Value == ProjectStatus.Working))
+            {
+                orderedProjects = query
+                    .OrderBy(p => p.DueDate == null)
+                    .ThenBy(p => p.DueDate)
+                    .ThenByDescending(p => p.CreatedAt);
+            }
+            else
+            {
+                orderedProjects = query
+                    .OrderByDescending(p => p.CreatedAt);
+            }
+
+            var projects = await orderedProjects.ToListAsync();
 
             var list = new List<ProjectResponse>();
             foreach (var p in projects)
