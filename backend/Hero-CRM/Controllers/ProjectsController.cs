@@ -101,8 +101,8 @@ namespace Hero_CRM.Controllers
             var completedTasks = nonCancelledTasks.Count(s => s == TaskItemStatus.Completed);
             response.Progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
 
-            // Auto-sync project status if tasks exist
-            if (allTasks.Count > 0)
+            // Auto-sync project status if tasks exist and project is not cancelled
+            if (allTasks.Count > 0 && project.Status != ProjectStatus.Cancelled)
             {
                 bool hasCompleted = allTasks.Any(s => s == TaskItemStatus.Completed);
                 bool allTasksCompletedOrCancelled = allTasks.All(s => s == TaskItemStatus.Completed || s == TaskItemStatus.Cancelled);
@@ -561,7 +561,7 @@ namespace Hero_CRM.Controllers
             if (project.Status == ProjectStatus.Cancelled)
             {
                 var tasksToCancel = await _context.TaskItems
-                    .Where(t => t.ProjectId == id && t.Status != TaskItemStatus.Cancelled)
+                    .Where(t => t.ProjectId == id && t.Status != TaskItemStatus.Cancelled && t.Status != TaskItemStatus.Completed)
                     .ToListAsync();
 
                 foreach (var t in tasksToCancel)
@@ -627,7 +627,7 @@ namespace Hero_CRM.Controllers
             if (project.Status == ProjectStatus.Cancelled)
             {
                 var tasksToCancel = await _context.TaskItems
-                    .Where(t => t.ProjectId == id && t.Status != TaskItemStatus.Cancelled)
+                    .Where(t => t.ProjectId == id && t.Status != TaskItemStatus.Cancelled && t.Status != TaskItemStatus.Completed)
                     .ToListAsync();
 
                 foreach (var t in tasksToCancel)
@@ -650,7 +650,7 @@ namespace Hero_CRM.Controllers
         }
 
         // DELETE: api/Projects/5
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
@@ -662,6 +662,29 @@ namespace Hero_CRM.Controllers
                 {
                     message = "Project not found."
                 });
+            }
+
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                if (project.OwnerId != userId)
+                {
+                    return Forbid();
+                }
+            }
+
+            var projectTaskIds = await _context.TaskItems
+                .Where(t => t.ProjectId == id)
+                .Select(t => t.Id)
+                .ToListAsync();
+
+            var notifs = await _context.Notifications
+                .Where(n => n.ProjectId == id || (n.TaskId.HasValue && projectTaskIds.Contains(n.TaskId.Value)))
+                .ToListAsync();
+            if (notifs.Any())
+            {
+                _context.Notifications.RemoveRange(notifs);
+                await _context.SaveChangesAsync();
             }
 
             _projectRepo.Delete(project);

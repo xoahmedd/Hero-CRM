@@ -368,6 +368,10 @@ export const usersApi = {
   async updateUser(id: number, data: any): Promise<any> {
     return await apiClient.put(`/Users/${id}`, data);
   },
+
+  async deleteUser(id: number): Promise<any> {
+    return await apiClient.delete(`/Users/${id}`);
+  },
 };
 
 

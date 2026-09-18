@@ -110,7 +110,7 @@ namespace Hero_CRM.Controllers
         private async Task SyncProjectStatusAsync(int projectId)
         {
             var project = await _projectRepo.GetByIdAsync(projectId);
-            if (project == null) return;
+            if (project == null || project.Status == ProjectStatus.Cancelled) return;
 
             var tasks = await _context.TaskItems
                 .AsNoTracking()
@@ -473,6 +473,14 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            if (project.Status == ProjectStatus.Cancelled)
+            {
+                return BadRequest(new
+                {
+                    message = "Cannot add tasks to a cancelled project. Reopen the project (set status to In Progress) first."
+                });
+            }
+
             var creator = await _userManager.FindByIdAsync(request.CreatedById.ToString());
 
             if (creator == null)
@@ -535,12 +543,26 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            var project = await _projectRepo.GetByIdAsync(task.ProjectId);
+            if (project != null && project.Status == ProjectStatus.Cancelled)
+            {
+                if (request.Status.HasValue && request.Status.Value != task.Status)
+                {
+                    if (request.Status.Value == TaskItemStatus.Assigned || request.Status.Value == TaskItemStatus.Review)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "Cannot move tasks to In Progress or Review while the project is cancelled. Please change project status to In Progress first."
+                        });
+                    }
+                }
+            }
+
             if (!IsAdmin)
             {
                 var userId = CurrentUserId;
                 var isAssigned = await _context.TaskAssignees
                     .AnyAsync(ta => ta.TaskItemId == id && ta.UserId == userId);
-                var project = await _projectRepo.GetByIdAsync(task.ProjectId);
                 var isProjectOwner = project != null && project.OwnerId == userId;
 
                 if (task.CreatedById != userId && !isAssigned && !isProjectOwner)
@@ -579,7 +601,6 @@ namespace Hero_CRM.Controllers
 
             if (request.AssigneeIds != null)
             {
-                var project = await _projectRepo.GetByIdAsync(task.ProjectId);
                 var projectName = project?.Name ?? "Project";
 
                 var existingAssignees = await _context.TaskAssignees
@@ -629,11 +650,6 @@ namespace Hero_CRM.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTask(int id)
         {
-            if (!IsAdmin)
-            {
-                return Forbid();
-            }
-
             var task = await _taskRepo.GetByIdAsync(id);
 
             if (task == null)
@@ -642,6 +658,26 @@ namespace Hero_CRM.Controllers
                 {
                     message = "Task not found."
                 });
+            }
+
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var project = await _projectRepo.GetByIdAsync(task.ProjectId);
+                var isOwner = project != null && project.OwnerId == userId;
+                if (!isOwner && task.CreatedById != userId)
+                {
+                    return Forbid();
+                }
+            }
+
+            var notifs = await _context.Notifications
+                .Where(n => n.TaskId == id)
+                .ToListAsync();
+            if (notifs.Any())
+            {
+                _context.Notifications.RemoveRange(notifs);
+                await _context.SaveChangesAsync();
             }
 
             var projectId = task.ProjectId;
@@ -926,6 +962,18 @@ namespace Hero_CRM.Controllers
                 {
                     message = "Task not found."
                 });
+            }
+
+            var project = await _projectRepo.GetByIdAsync(task.ProjectId);
+            if (project != null && project.Status == ProjectStatus.Cancelled)
+            {
+                if (targetStatus.Value == TaskItemStatus.Assigned || targetStatus.Value == TaskItemStatus.Review)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Cannot move tasks to In Progress or Review while the project is cancelled. Please change project status to In Progress first."
+                    });
+                }
             }
 
             if (!IsAdmin)

@@ -6,9 +6,11 @@ import { Button, Card, Input, Modal, Select, Table } from "../components/ui";
 
 const ROLES: Role[] = ["Admin", "Developer"];
 
-export default function UsersPage() {
+export default function UsersPage({ currentUser }: { currentUser?: User }) {
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [showCreate, setShowCreate] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ fullName: "", email: "", role: "Developer" as Role, avatar: "" });
 
   useEffect(() => {
@@ -44,6 +46,21 @@ export default function UsersPage() {
     setForm({ fullName: "", email: "", role: "Developer", avatar: "" });
   }
 
+  async function handleDeleteUser() {
+    if (!userToDelete) return;
+    setDeleting(true);
+    try {
+      await usersApi.deleteUser(userToDelete.id);
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+      setUserToDelete(null);
+    } catch (err: any) {
+      console.error("Failed to delete user:", err);
+      alert(err?.message || "Failed to delete user.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function toggleActive(id: number) {
     const target = users.find((u) => u.id === id);
     if (target) {
@@ -53,7 +70,6 @@ export default function UsersPage() {
     }
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, isActive: !u.isActive } : u)));
   }
-
 
   const roleColors: Record<Role, { bg: string; color: string }> = {
     Admin: { bg: "#dce8ff", color: "#1a3896" },
@@ -76,17 +92,31 @@ export default function UsersPage() {
               >
                 {user.avatar}
               </div>
-              {/* Toggle switch */}
-              <button
-                onClick={() => toggleActive(user.id)}
-                className="relative inline-flex items-center rounded-full transition-colors"
-                style={{ width: 36, height: 20, background: user.isActive ? "#1a3896" : "#cbd5e1" }}
-              >
-                <span
-                  className="inline-block rounded-full bg-white shadow transition-transform"
-                  style={{ width: 14, height: 14, transform: user.isActive ? "translateX(18px)" : "translateX(3px)" }}
-                />
-              </button>
+              {/* Toggle switch and delete button */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => toggleActive(user.id)}
+                  title={user.isActive ? "Active (click to deactivate)" : "Inactive (click to activate)"}
+                  className="relative inline-flex items-center rounded-full transition-colors cursor-pointer"
+                  style={{ width: 36, height: 20, background: user.isActive ? "#1a3896" : "#cbd5e1" }}
+                >
+                  <span
+                    className="inline-block rounded-full bg-white shadow transition-transform"
+                    style={{ width: 14, height: 14, transform: user.isActive ? "translateX(18px)" : "translateX(3px)" }}
+                  />
+                </button>
+                {currentUser?.id !== user.id && (
+                  <button
+                    onClick={() => setUserToDelete(user)}
+                    title="Delete user"
+                    className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
             <div className="font-semibold text-sm mb-0.5" style={{ fontFamily: "var(--font-display)", color: "var(--color-foreground)" }}>
               {user.fullName}
@@ -130,6 +160,31 @@ export default function UsersPage() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button onClick={handleCreate} disabled={!form.fullName || !form.email}>Create User</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {userToDelete && (
+        <Modal title="Delete User" onClose={() => !deleting && setUserToDelete(null)}>
+          <div className="space-y-4">
+            <div className="p-3 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 text-sm">
+              ⚠️ <strong>Warning:</strong> Are you sure you want to delete <strong>{userToDelete.fullName}</strong> ({userToDelete.email})?
+              <p className="mt-1 text-xs text-rose-700">
+                This will permanently delete their account and unassign them from any active projects and tasks.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setUserToDelete(null)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteUser}
+                disabled={deleting}
+                style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+              >
+                {deleting ? "Deleting..." : "Delete User"}
+              </Button>
             </div>
           </div>
         </Modal>

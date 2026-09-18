@@ -116,7 +116,7 @@ export default function App() {
       case "reports":
         return <ReportsPage />;
       case "users":
-        return <UsersPage />;
+        return <UsersPage currentUser={currentUser!} />;
       default:
         return null;
     }

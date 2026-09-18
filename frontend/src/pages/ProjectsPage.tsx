@@ -46,6 +46,23 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [showReason, setShowReason] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
+
+  async function handleDeleteProject() {
+    if (!projectToDelete) return;
+    setDeletingProject(true);
+    try {
+      await projectsApi.deleteProject(projectToDelete.id);
+      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
+      setProjectToDelete(null);
+    } catch (err: any) {
+      console.error("Failed to delete project:", err);
+      alert(err?.message || "Failed to delete project.");
+    } finally {
+      setDeletingProject(false);
+    }
+  }
 
   // Create form state
   const [createForm, setCreateForm] = useState<{
@@ -443,9 +460,21 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   <Button size="sm" variant="secondary" onClick={() => onViewProject(project.id)}>
                     View Details
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => handleOpenEditModal(project)}>
-                    Edit
-                  </Button>
+                  {(isAdmin || project.ownerId === currentUser.id) && (
+                    <Button size="sm" variant="secondary" onClick={() => handleOpenEditModal(project)}>
+                      Edit
+                    </Button>
+                  )}
+                  {(isAdmin || project.ownerId === currentUser.id) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      style={{ color: "#dc2626", borderColor: "#fecaca" }}
+                      onClick={() => setProjectToDelete(project)}
+                    >
+                      Delete
+                    </Button>
+                  )}
                   {isProjectOverdue && (
                     <Button
                       size="sm"
@@ -837,6 +866,32 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
               </Button>
               <Button onClick={handleSubmitReason} disabled={!reasonForm.reason.trim()}>
                 {showReason.missedDeadlineReason ? "Save Reason" : "Submit Reason"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Project Confirmation Modal */}
+      {projectToDelete && (
+        <Modal title="Delete Project" onClose={() => !deletingProject && setProjectToDelete(null)}>
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-lg bg-rose-50 text-rose-900 border border-rose-200 text-sm">
+              ⚠️ <strong>Warning:</strong> Are you sure you want to delete project <strong>"{projectToDelete.name}"</strong>?
+              <p className="mt-1 text-xs text-rose-700">
+                This will permanently delete the project and all associated tasks, assignments, and discussions. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setProjectToDelete(null)} disabled={deletingProject}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteProject}
+                disabled={deletingProject}
+                style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+              >
+                {deletingProject ? "Deleting..." : "Delete Project"}
               </Button>
             </div>
           </div>

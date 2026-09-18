@@ -169,9 +169,47 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
     reason: "",
   });
 
+  // Delete modals state
+  const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [deletingTask, setDeletingTask] = useState(false);
+
+  async function handleDeleteProject() {
+    if (!project) return;
+    setDeletingProject(true);
+    try {
+      await projectsApi.deleteProject(projectId);
+      onBack();
+    } catch (err: any) {
+      console.error("Failed to delete project:", err);
+      alert(err?.message || "Failed to delete project.");
+    } finally {
+      setDeletingProject(false);
+    }
+  }
+
+  async function handleDeleteTask() {
+    if (!taskToDelete) return;
+    setDeletingTask(true);
+    try {
+      await tasksApi.deleteTask(taskToDelete.id);
+      setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
+      if (selectedTask?.id === taskToDelete.id) {
+        setSelectedTask(null);
+      }
+      setTaskToDelete(null);
+    } catch (err: any) {
+      console.error("Failed to delete task:", err);
+      alert(err?.message || "Failed to delete task.");
+    } finally {
+      setDeletingTask(false);
+    }
+  }
+
   // Auto-sync project status when tasks change
   useEffect(() => {
-    if (!project) return;
+    if (!project || project.status === "Cancelled") return;
     const safeTasks = (Array.isArray(tasks) ? tasks : []).filter((t): t is Task => Boolean(t && t.id));
     if (safeTasks.length === 0) return;
     const hasCompleted = safeTasks.some((t) => t.status === "Completed");
@@ -431,7 +469,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       const members = await projectMembersApi.getMembers(projectId);
       if (Array.isArray(members)) setProjectMembers(members);
       if (editProjectForm.status === "Cancelled") {
-        setTasks((prev) => prev.map((t) => ({ ...t, status: "Cancelled" as TaskStatus })));
+        setTasks((prev) => prev.map((t) => t.status === "Completed" ? t : ({ ...t, status: "Cancelled" as TaskStatus })));
       }
       setShowEditProjectModal(false);
     } catch (err: any) {
@@ -453,7 +491,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
           : null
       );
       if (editProjectForm.status === "Cancelled") {
-        setTasks((prev) => prev.map((t) => ({ ...t, status: "Cancelled" as TaskStatus })));
+        setTasks((prev) => prev.map((t) => t.status === "Completed" ? t : ({ ...t, status: "Cancelled" as TaskStatus })));
       }
       setShowEditProjectModal(false);
     }
@@ -682,6 +720,15 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                   Edit Project
                 </Button>
               )}
+              {(isAdmin || project.ownerId === currentUser?.id) && (
+                <Button
+                  size="sm"
+                  onClick={() => setShowDeleteProjectModal(true)}
+                  style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+                >
+                  Delete Project
+                </Button>
+              )}
             </div>
             <p className="text-sm mb-4" style={{ color: "var(--color-muted-foreground)" }}>{project.description}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
@@ -745,7 +792,18 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
         {activeTab === "tasks" && (
           <div className="flex items-center gap-2">
             {(isAdmin || (projectMembers || []).some((pm) => (pm?.userId || pm?.id) === currentUser?.id)) && (
-              <Button size="sm" onClick={() => setShowCreateTaskModal(true)}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (project.status === "Cancelled") {
+                    alert("Cannot add tasks to a cancelled project. Please change project status to In Progress first.");
+                    return;
+                  }
+                  setShowCreateTaskModal(true);
+                }}
+                disabled={project.status === "Cancelled"}
+                title={project.status === "Cancelled" ? "Cannot add tasks to a cancelled project. Reopen the project first." : undefined}
+              >
                 + Add Task
               </Button>
             )}
@@ -767,6 +825,13 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
           </div>
         )}
       </div>
+
+      {/* Cancelled Project Warning Banner */}
+      {activeTab === "tasks" && project.status === "Cancelled" && (
+        <div className="p-3.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 text-sm flex items-center gap-2">
+          <span>⚠️ <strong>Project is Cancelled:</strong> Tasks cannot be added or moved to In Progress or Review until this project's status is changed back to In Progress. Completed tasks remain completed.</span>
+        </div>
+      )}
 
       {/* Kanban View */}
       {activeTab === "tasks" && view === "kanban" && (
@@ -790,8 +855,22 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                         isTaskOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : ""
                       }`}
                     >
-                      <div className="text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)", color: "var(--color-foreground)" }}>
-                        {task.title}
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <div className="text-sm font-medium leading-snug" style={{ fontFamily: "var(--font-display)", color: "var(--color-foreground)" }}>
+                          {task.title}
+                        </div>
+                        {(isAdmin || project.ownerId === currentUser?.id || task.createdById === currentUser?.id) && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTaskToDelete(task);
+                            }}
+                            className="text-slate-400 hover:text-red-600 p-0.5 rounded text-xs font-bold leading-none cursor-pointer transition-colors flex-shrink-0"
+                            title="Delete task"
+                          >
+                            ✕
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between flex-wrap gap-1">
@@ -869,6 +948,18 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                         {isTaskOverdue && "⚠️"} {safeFormatDate(task.dueDate)}
                       </span>
                     )}
+                    {(isAdmin || project.ownerId === currentUser?.id || task.createdById === currentUser?.id) && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTaskToDelete(task);
+                        }}
+                        className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 text-xs font-bold leading-none cursor-pointer transition-colors"
+                        title="Delete task"
+                      >
+                        ✕
+                      </span>
+                    )}
                   </div>
                 </button>
               );
@@ -939,13 +1030,24 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                   Due {safeFormatDate(selectedTask.dueDate)}
                 </span>
               </div>
-              {(isAdmin ||
-                (selectedTask.assignees || []).some((a) => a?.id === currentUser?.id) ||
-                selectedTask.createdById === currentUser?.id) && (
-                <Button size="sm" variant="secondary" onClick={() => startEditTask(selectedTask)}>
-                  ✏️ Edit Task
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {(isAdmin ||
+                  (selectedTask.assignees || []).some((a) => a?.id === currentUser?.id) ||
+                  selectedTask.createdById === currentUser?.id) && (
+                  <Button size="sm" variant="secondary" onClick={() => startEditTask(selectedTask)}>
+                    ✏️ Edit Task
+                  </Button>
+                )}
+                {(isAdmin || project.ownerId === currentUser?.id || selectedTask.createdById === currentUser?.id) && (
+                  <Button
+                    size="sm"
+                    onClick={() => setTaskToDelete(selectedTask)}
+                    style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+                  >
+                    Delete Task
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Overdue Delay Justification Banner - persists even when completed! */}
@@ -1005,7 +1107,11 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
             )}
 
             {/* Workflow & Status Actions */}
-            {isAdmin ? (
+            {project?.status === "Cancelled" ? (
+              <div className="p-3.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-300 text-sm">
+                🔒 <strong>Project Cancelled:</strong> Tasks cannot be moved to In Progress or Review while the project is Cancelled. Reopen the project (set status to In Progress) to resume work on tasks.
+              </div>
+            ) : isAdmin ? (
               selectedTask.status === "Review" ? (
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ fontFamily: "var(--font-display)", color: "var(--color-muted-foreground)" }}>Admin Review Actions</label>
@@ -1258,11 +1364,11 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>Status</label>
-                {isAdmin ? (
+                {isAdmin && project?.status !== "Cancelled" ? (
                   <Select value={editForm.status} onChange={(v) => setEditForm((f) => ({ ...f, status: v as TaskStatus }))} options={TASK_STATUSES.map((s) => ({ value: s, label: s }))} />
                 ) : (
                   <div className="px-3 py-2 rounded-lg text-sm bg-slate-100 text-slate-700 border border-slate-200">
-                    {editForm.status}
+                    {editForm.status} {project?.status === "Cancelled" && "(Locked - Project Cancelled)"}
                   </div>
                 )}
               </div>
@@ -1315,9 +1421,26 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" onClick={() => setEditingTask(null)}>Cancel</Button>
-              <Button onClick={handleSaveEditTask} disabled={!editForm.title.trim() || editForm.assigneeIds.length === 0}>Save Changes</Button>
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <div>
+                {(isAdmin || project.ownerId === currentUser?.id || editingTask.createdById === currentUser?.id) && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const toDel = editingTask;
+                      setEditingTask(null);
+                      setTaskToDelete(toDel);
+                    }}
+                    style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+                  >
+                    Delete Task
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => setEditingTask(null)}>Cancel</Button>
+                <Button onClick={handleSaveEditTask} disabled={!editForm.title.trim() || editForm.assigneeIds.length === 0}>Save Changes</Button>
+              </div>
             </div>
           </div>
         </Modal>
@@ -1565,6 +1688,72 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               </Button>
               <Button onClick={handleSubmitProjectReason} disabled={!projectReasonForm.reason.trim()}>
                 {project.missedDeadlineReason ? "Save Reason" : "Submit Reason"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Project Confirmation Modal */}
+      {showDeleteProjectModal && project && (
+        <Modal
+          title="Delete Project"
+          onClose={() => !deletingProject && setShowDeleteProjectModal(false)}
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm">
+              <p className="font-semibold mb-1">Are you sure you want to delete this project?</p>
+              <p className="text-xs text-rose-700">
+                This will permanently delete "<strong>{project.name}</strong>", including all its tasks, comments, and member assignments. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowDeleteProjectModal(false)}
+                disabled={deletingProject}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteProject}
+                disabled={deletingProject}
+                style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+              >
+                {deletingProject ? "Deleting..." : "Yes, Delete Project"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Task Confirmation Modal */}
+      {taskToDelete && (
+        <Modal
+          title="Delete Task"
+          onClose={() => !deletingTask && setTaskToDelete(null)}
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm">
+              <p className="font-semibold mb-1">Are you sure you want to delete this task?</p>
+              <p className="text-xs text-rose-700">
+                This will permanently delete "<strong>{taskToDelete.title}</strong>", including its comments and subtasks. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => setTaskToDelete(null)}
+                disabled={deletingTask}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteTask}
+                disabled={deletingTask}
+                style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+              >
+                {deletingTask ? "Deleting..." : "Yes, Delete Task"}
               </Button>
             </div>
           </div>

@@ -1,10 +1,12 @@
 using Application.Common;
 using Application.DTOs.Users;
 using Domain.Entities.Identity;
+using Infrastructure._Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Hero_CRM.Controllers
 {
@@ -14,10 +16,12 @@ namespace Hero_CRM.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationDbContext _context;
 
-        public UsersController(UserManager<ApplicationUser> userManager)
+        public UsersController(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
+            _context = context;
         }
 
         // GET: api/Users
@@ -239,6 +243,68 @@ namespace Hero_CRM.Controllers
                     message = "User not found."
                 });
             }
+
+            var currentUserIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(currentUserIdClaim, out var currentUserId) && currentUserId == id)
+            {
+                return BadRequest(new
+                {
+                    message = "You cannot delete your own account."
+                });
+            }
+
+            // Remove project memberships
+            var projMembers = await _context.ProjectMembers
+                .Where(pm => pm.UserId == id)
+                .ToListAsync();
+            if (projMembers.Any())
+            {
+                _context.ProjectMembers.RemoveRange(projMembers);
+            }
+
+            // Remove task assignments
+            var taskAssignees = await _context.TaskAssignees
+                .Where(ta => ta.UserId == id)
+                .ToListAsync();
+            if (taskAssignees.Any())
+            {
+                _context.TaskAssignees.RemoveRange(taskAssignees);
+            }
+
+            // Reassign tasks created by this user to current admin if any
+            var createdTasks = await _context.TaskItems
+                .Where(t => t.CreatedById == id)
+                .ToListAsync();
+            foreach (var t in createdTasks)
+            {
+                if (currentUserId > 0)
+                {
+                    t.CreatedById = currentUserId;
+                }
+            }
+
+            // Reassign owned projects to current admin if any
+            var ownedProjects = await _context.Projects
+                .Where(p => p.OwnerId == id)
+                .ToListAsync();
+            foreach (var p in ownedProjects)
+            {
+                if (currentUserId > 0)
+                {
+                    p.OwnerId = currentUserId;
+                }
+            }
+
+            // Remove user notifications
+            var notifications = await _context.Notifications
+                .Where(n => n.UserId == id)
+                .ToListAsync();
+            if (notifications.Any())
+            {
+                _context.Notifications.RemoveRange(notifications);
+            }
+
+            await _context.SaveChangesAsync();
 
             var result = await _userManager.DeleteAsync(user);
 

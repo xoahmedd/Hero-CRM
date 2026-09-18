@@ -181,8 +181,9 @@ export default function TasksPage({ currentUser }: Props) {
           tasks.some((t) => t.projectId === p.id && t.assignees.some((a) => a.id === currentUser.id))
       );
 
+  const createAvailableProjects = availableProjects.filter((p) => p.status !== "Cancelled");
   const developers = usersList.filter((u) => u.role === "Developer" || u.role === "Admin");
-  const selectedProject = availableProjects.find((p) => p.id === createForm.projectId);
+  const selectedProject = createAvailableProjects.find((p) => p.id === createForm.projectId) || availableProjects.find((p) => p.id === createForm.projectId);
   const projectDevelopers = selectedProject?.members && selectedProject.members.length > 0
     ? developers.filter((d) => selectedProject.members!.some((m) => m.userId === d.id) || selectedProject.ownerId === d.id)
     : developers;
@@ -281,36 +282,20 @@ export default function TasksPage({ currentUser }: Props) {
       });
       const updated = await tasksApi.getTasks();
       setTasks(updated);
-    } catch {
-      const project = projectsList.find((p) => p.id === createForm.projectId);
-      const selectedAssignees = developers
-        .filter((d) => createForm.assigneeIds.includes(d.id))
-        .map((d) => ({ id: d.id, name: d.fullName, avatar: d.avatar }));
-      const newTask: Task = {
-        id: tasks.length + 100,
-        title: createForm.title,
-        description: createForm.description,
-        status: createForm.status as Task["status"],
-        priority: createForm.priority as Task["priority"],
-        projectId: createForm.projectId,
-        projectName: project?.name ?? "",
-        assignees: selectedAssignees,
-        createdById: currentUser.id,
-        dueDate: createForm.dueDate || new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      };
-      setTasks((prev) => [newTask, ...prev]);
+      setShowCreate(false);
+      setCreateForm({
+        title: "",
+        description: "",
+        status: "Assigned",
+        priority: "Medium",
+        projectId: createAvailableProjects[0]?.id || availableProjects[0]?.id || 1,
+        dueDate: "",
+        assigneeIds: [],
+      });
+    } catch (err: any) {
+      console.error("Failed to create task:", err);
+      alert(err?.message || "Failed to create task.");
     }
-    setShowCreate(false);
-    setCreateForm({
-      title: "",
-      description: "",
-      status: "Assigned",
-      priority: "Medium",
-      projectId: availableProjects[0]?.id || 1,
-      dueDate: "",
-      assigneeIds: [],
-    });
   }
 
   function startEdit(task: Task) {
@@ -344,37 +329,11 @@ export default function TasksPage({ currentUser }: Props) {
       });
       const updated = await tasksApi.getTasks();
       setTasks(updated);
+      setEditingTask(null);
     } catch (err: any) {
       console.error("Failed to update task:", err);
-      const proj = availableProjects.find((p) => p.id === editForm.projectId);
-      const selectedAssignees = developers
-        .filter((d) => editForm.assigneeIds.includes(d.id))
-        .map((d) => ({ id: d.id, name: d.fullName, avatar: d.avatar }));
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === editingTask.id
-            ? {
-                ...t,
-                title: editForm.title,
-                description: editForm.description,
-                priority: editForm.priority as Task["priority"],
-                status: (isAdmin ? editForm.status : t.status) as Task["status"],
-                dueDate: editForm.dueDate || t.dueDate,
-                projectId: editForm.projectId,
-                projectName: proj?.name ?? t.projectName,
-                assignees: selectedAssignees,
-                isOverdue: Boolean(
-                  editForm.dueDate &&
-                  new Date(editForm.dueDate) < new Date() &&
-                  t.status !== "Completed" &&
-                  t.status !== "Cancelled"
-                ),
-              }
-            : t
-        )
-      );
+      alert(err?.message || "Failed to update task.");
     }
-    setEditingTask(null);
   }
 
 
@@ -492,7 +451,7 @@ export default function TasksPage({ currentUser }: Props) {
                                     ✏️
                                   </button>
                                 )}
-                                {isAdmin && (
+                                {(isAdmin || task.createdById === currentUser.id) && (
                                   <button
                                     onClick={() => deleteTask(task.id)}
                                     className="text-slate-400 hover:text-red-600 transition-colors p-0.5 text-xs cursor-pointer"
@@ -729,7 +688,7 @@ export default function TasksPage({ currentUser }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>Project</label>
-                <Select value={String(createForm.projectId)} onChange={(v) => setCreateForm((f) => ({ ...f, projectId: Number(v) }))} options={availableProjects.map((p) => ({ value: String(p.id), label: p.name }))} />
+                <Select value={String(createForm.projectId)} onChange={(v) => setCreateForm((f) => ({ ...f, projectId: Number(v) }))} options={createAvailableProjects.map((p) => ({ value: String(p.id), label: p.name }))} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>Priority</label>
@@ -825,11 +784,11 @@ export default function TasksPage({ currentUser }: Props) {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>Status</label>
-                {isAdmin ? (
+                {isAdmin && editSelectedProject?.status !== "Cancelled" ? (
                   <Select value={editForm.status} onChange={(v) => setEditForm((f) => ({ ...f, status: v }))} options={STATUSES.map((s) => ({ value: s, label: s }))} />
                 ) : (
                   <div className="px-3 py-2 rounded-lg text-sm bg-slate-100 text-slate-700 border border-slate-200">
-                    {editForm.status}
+                    {editForm.status} {editSelectedProject?.status === "Cancelled" && "(Locked - Project Cancelled)"}
                   </div>
                 )}
               </div>
@@ -882,9 +841,26 @@ export default function TasksPage({ currentUser }: Props) {
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" onClick={() => setEditingTask(null)}>Cancel</Button>
-              <Button onClick={handleSaveEdit} disabled={!editForm.title || editForm.assigneeIds.length === 0}>Save Changes</Button>
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <div>
+                {(isAdmin || editingTask.createdById === currentUser.id) && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const id = editingTask.id;
+                      setEditingTask(null);
+                      deleteTask(id);
+                    }}
+                    style={{ background: "#dc2626", borderColor: "#dc2626", color: "white" }}
+                  >
+                    Delete Task
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => setEditingTask(null)}>Cancel</Button>
+                <Button onClick={handleSaveEdit} disabled={!editForm.title || editForm.assigneeIds.length === 0}>Save Changes</Button>
+              </div>
             </div>
           </div>
         </Modal>
