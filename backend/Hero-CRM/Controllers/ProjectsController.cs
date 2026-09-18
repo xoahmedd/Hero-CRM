@@ -490,6 +490,7 @@ namespace Hero_CRM.Controllers
 
 
         // PUT: api/Projects/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateProject(int id, UpdateProjectRequest request)
         {
@@ -505,13 +506,7 @@ namespace Hero_CRM.Controllers
 
             if (!IsAdmin)
             {
-                var userId = CurrentUserId;
-                var isAssigned = project.OwnerId == userId ||
-                    await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == id && pm.UserId == userId);
-                if (!isAssigned)
-                {
-                    return Forbid();
-                }
+                return Forbid();
             }
 
             if (request.OwnerId.HasValue && request.OwnerId.Value > 0)
@@ -610,6 +605,7 @@ namespace Hero_CRM.Controllers
         }
 
         // PATCH: api/Projects/5/status
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> UpdateProjectStatus(
             int id,
@@ -637,13 +633,7 @@ namespace Hero_CRM.Controllers
 
             if (!IsAdmin)
             {
-                var userId = CurrentUserId;
-                var isAssigned = project.OwnerId == userId ||
-                    await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == id && pm.UserId == userId);
-                if (!isAssigned)
-                {
-                    return Forbid();
-                }
+                return Forbid();
             }
 
             project.Status = targetStatus.Value;
@@ -678,7 +668,7 @@ namespace Hero_CRM.Controllers
         }
 
         // DELETE: api/Projects/5
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
@@ -694,11 +684,7 @@ namespace Hero_CRM.Controllers
 
             if (!IsAdmin)
             {
-                var userId = CurrentUserId;
-                if (project.OwnerId != userId)
-                {
-                    return Forbid();
-                }
+                return Forbid();
             }
 
             var projectTaskIds = await _context.TaskItems

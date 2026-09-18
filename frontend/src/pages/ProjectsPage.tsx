@@ -474,12 +474,12 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   <Button size="sm" variant="secondary" onClick={() => onViewProject(project.id)}>
                     View Details
                   </Button>
-                  {(isAdmin || project.ownerId === currentUser.id) && (
+                  {isAdmin && (
                     <Button size="sm" variant="secondary" onClick={() => handleOpenEditModal(project)}>
                       Edit
                     </Button>
                   )}
-                  {(isAdmin || project.ownerId === currentUser.id) && (
+                  {isAdmin && (
                     <Button
                       size="sm"
                       variant="secondary"

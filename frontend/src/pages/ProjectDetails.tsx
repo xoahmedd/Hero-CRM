@@ -293,6 +293,33 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
 
   const isAdmin = currentUser?.role === "Admin";
 
+  const assignedMemberIds = new Set<number>();
+  if (project.ownerId) assignedMemberIds.add(project.ownerId);
+  (projectMembers || []).forEach((pm) => {
+    const id = pm?.userId || pm?.id;
+    if (id) assignedMemberIds.add(id);
+  });
+  if (Array.isArray(project.members)) {
+    project.members.forEach((m) => {
+      const id = m?.userId || (m as any)?.id;
+      if (id) assignedMemberIds.add(id);
+    });
+  }
+  if (Array.isArray(project.memberIds)) {
+    project.memberIds.forEach((id) => assignedMemberIds.add(id));
+  }
+
+  const assignableUsers = (allUsers || []).filter(
+    (u) => Boolean(u && u.id) && (u.role === "Developer" || u.role === "Admin") && assignedMemberIds.has(u.id)
+  );
+
+  const nonMemberDevelopers = (allUsers || []).filter(
+    (u) =>
+      Boolean(u && u.id) &&
+      (u.role === "Developer" || u.role === "Admin") &&
+      !assignedMemberIds.has(u.id)
+  );
+
   // Filter tasks safely
   const safeTasks = (Array.isArray(tasks) ? tasks : []).filter((t): t is Task => Boolean(t && t.id));
 
@@ -541,13 +568,16 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
 
   function startEditTask(task: Task) {
     setEditingTask(task);
+    const validAssigneeIds = (task.assignees || [])
+      .map((a) => a.id)
+      .filter((id) => assignedMemberIds.has(id));
     setEditForm({
       title: task.title,
       description: task.description || "",
       priority: task.priority,
       status: task.status,
       dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
-      assigneeIds: (task.assignees || []).map((a) => a.id),
+      assigneeIds: validAssigneeIds,
     });
   }
 
@@ -573,7 +603,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       setEditingTask(null);
     } catch (err: any) {
       console.error("Failed to update task:", err);
-      const assignable = (allUsers || []).filter((u) => u && (u.role === "Developer" || u.role === "Admin"));
+      const assignable = assignableUsers;
       const selectedAssignees = assignable
         .filter((d) => editForm.assigneeIds.includes(d.id))
         .map((d) => ({ id: d.id, name: d.fullName, avatar: d.avatar }));
@@ -632,7 +662,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       setTasks(updated);
     } catch (err: any) {
       console.error("Failed to create task:", err);
-      const assignable = (allUsers || []).filter((u) => u && (u.role === "Developer" || u.role === "Admin"));
+      const assignable = assignableUsers;
       const selectedAssignees = assignable
         .filter((d) => createTaskForm.assigneeIds.includes(d.id))
         .map((d) => ({ id: d.id, name: d.fullName, avatar: d.avatar }));
@@ -661,17 +691,6 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       assigneeIds: [],
     });
   }
-
-  const nonMemberDevelopers = (allUsers || []).filter(
-    (u) =>
-      Boolean(u && u.id) &&
-      (u.role === "Developer" || u.role === "Admin") &&
-      !(projectMembers || []).some((pm) => Boolean(pm) && (pm.userId || pm.id) === u.id)
-  );
-
-  const assignableUsers = (allUsers || []).filter(
-    (u) => Boolean(u && u.id) && (u.role === "Developer" || u.role === "Admin")
-  );
 
   const taskComments = selectedTask ? (comments || []).filter((c) => c && c.taskId === selectedTask.id) : [];
 
@@ -729,12 +748,12 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                 (project.dueDate && new Date(project.dueDate) < new Date() && project.status !== "Finished" && project.status !== "Cancelled")
               ) && <Badge label="Overdue" />}
               <Badge label={project.priority || "Medium"} type="priority" />
-              {(isAdmin || project.ownerId === currentUser?.id || (projectMembers || []).some((pm) => (pm?.userId || pm?.id) === currentUser?.id)) && (
+              {isAdmin && (
                 <Button size="sm" variant="secondary" onClick={handleOpenEditProject}>
                   Edit Project
                 </Button>
               )}
-              {(isAdmin || project.ownerId === currentUser?.id) && (
+              {isAdmin && (
                 <Button
                   size="sm"
                   onClick={() => setShowDeleteProjectModal(true)}
@@ -805,7 +824,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
 
         {activeTab === "tasks" && (
           <div className="flex items-center gap-2">
-            {(isAdmin || (projectMembers || []).some((pm) => (pm?.userId || pm?.id) === currentUser?.id)) && (
+            {isAdmin && (
               <Button
                 size="sm"
                 onClick={() => {
@@ -873,7 +892,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                         <div className="text-sm font-medium leading-snug" style={{ fontFamily: "var(--font-display)", color: "var(--color-foreground)" }}>
                           {task.title}
                         </div>
-                        {(isAdmin || project.ownerId === currentUser?.id || task.createdById === currentUser?.id) && (
+                        {isAdmin && (
                           <span
                             onClick={(e) => {
                               e.stopPropagation();
@@ -962,7 +981,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                         {isTaskOverdue && "⚠️"} {safeFormatDate(task.dueDate)}
                       </span>
                     )}
-                    {(isAdmin || project.ownerId === currentUser?.id || task.createdById === currentUser?.id) && (
+                    {isAdmin && (
                       <span
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1045,14 +1064,12 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {(isAdmin ||
-                  (selectedTask.assignees || []).some((a) => a?.id === currentUser?.id) ||
-                  selectedTask.createdById === currentUser?.id) && (
+                {isAdmin && (
                   <Button size="sm" variant="secondary" onClick={() => startEditTask(selectedTask)}>
                     ✏️ Edit Task
                   </Button>
                 )}
-                {(isAdmin || project.ownerId === currentUser?.id || selectedTask.createdById === currentUser?.id) && (
+                {isAdmin && (
                   <Button
                     size="sm"
                     onClick={() => setTaskToDelete(selectedTask)}
@@ -1281,41 +1298,47 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               <label className="block text-sm font-medium mb-1.5" style={{ fontFamily: "var(--font-display)" }}>
                 Assign Developers & Admins (Select one or more)
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
-                {assignableUsers.map((dev) => {
-                  const isSelected = createTaskForm.assigneeIds.includes(dev.id);
-                  return (
-                    <label
-                      key={dev.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
-                        isSelected
-                          ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCreateTaskForm((f) => ({ ...f, assigneeIds: [...f.assigneeIds, dev.id] }));
-                          } else {
-                            setCreateTaskForm((f) => ({ ...f, assigneeIds: f.assigneeIds.filter((id) => id !== dev.id) }));
-                          }
-                        }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0" style={{ background: "#1a3896" }}>
-                        {dev.avatar}
-                      </span>
-                      <span className="truncate">
-                        {dev.fullName} {dev.role === "Admin" && <span className="text-[10px] text-blue-600 font-semibold">(Admin)</span>}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              {createTaskForm.assigneeIds.length === 0 && (
+              {assignableUsers.length === 0 ? (
+                <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                  ⚠️ No developers or admins are assigned to this project. Please assign developers to the project first before creating tasks.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
+                  {assignableUsers.map((dev) => {
+                    const isSelected = createTaskForm.assigneeIds.includes(dev.id);
+                    return (
+                      <label
+                        key={dev.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
+                          isSelected
+                            ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCreateTaskForm((f) => ({ ...f, assigneeIds: [...f.assigneeIds, dev.id] }));
+                            } else {
+                              setCreateTaskForm((f) => ({ ...f, assigneeIds: f.assigneeIds.filter((id) => id !== dev.id) }));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0" style={{ background: "#1a3896" }}>
+                          {dev.avatar}
+                        </span>
+                        <span className="truncate">
+                          {dev.fullName} {dev.role === "Admin" && <span className="text-[10px] text-blue-600 font-semibold">(Admin)</span>}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {assignableUsers.length > 0 && createTaskForm.assigneeIds.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">Please select at least one developer or admin for this task.</p>
               )}
             </div>
@@ -1396,48 +1419,54 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               <label className="block text-sm font-medium mb-1.5" style={{ fontFamily: "var(--font-display)" }}>
                 Assign Developers & Admins (Select one or more)
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
-                {assignableUsers.map((dev) => {
-                  const isSelected = editForm.assigneeIds.includes(dev.id);
-                  return (
-                    <label
-                      key={dev.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
-                        isSelected
-                          ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setEditForm((f) => ({ ...f, assigneeIds: [...f.assigneeIds, dev.id] }));
-                          } else {
-                            setEditForm((f) => ({ ...f, assigneeIds: f.assigneeIds.filter((id) => id !== dev.id) }));
-                          }
-                        }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0" style={{ background: "#1a3896" }}>
-                        {dev.avatar}
-                      </span>
-                      <span className="truncate">
-                        {dev.fullName} {dev.role === "Admin" && <span className="text-[10px] text-blue-600 font-semibold">(Admin)</span>}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              {editForm.assigneeIds.length === 0 && (
+              {assignableUsers.length === 0 ? (
+                <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                  ⚠️ No developers or admins are assigned to this project. Please assign developers to the project first.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
+                  {assignableUsers.map((dev) => {
+                    const isSelected = editForm.assigneeIds.includes(dev.id);
+                    return (
+                      <label
+                        key={dev.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
+                          isSelected
+                            ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditForm((f) => ({ ...f, assigneeIds: [...f.assigneeIds, dev.id] }));
+                            } else {
+                              setEditForm((f) => ({ ...f, assigneeIds: f.assigneeIds.filter((id) => id !== dev.id) }));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0" style={{ background: "#1a3896" }}>
+                          {dev.avatar}
+                        </span>
+                        <span className="truncate">
+                          {dev.fullName} {dev.role === "Admin" && <span className="text-[10px] text-blue-600 font-semibold">(Admin)</span>}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {assignableUsers.length > 0 && editForm.assigneeIds.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">Please select at least one developer or admin for this task.</p>
               )}
             </div>
 
             <div className="flex items-center justify-between gap-2 pt-2">
               <div>
-                {(isAdmin || project.ownerId === currentUser?.id || editingTask.createdById === currentUser?.id) && (
+                {isAdmin && (
                   <Button
                     size="sm"
                     onClick={() => {
