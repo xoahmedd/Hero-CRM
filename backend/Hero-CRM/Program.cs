@@ -28,6 +28,7 @@ namespace Hero_CRM
 
             builder.Services.AddControllers().AddJsonOptions(options =>
             {
+                options.JsonSerializerOptions.Converters.Add(new Hero_CRM.Converters.ProjectStatusJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 options.JsonSerializerOptions.Converters.Add(new Hero_CRM.Converters.NullableDateTimeConverter());
             });

@@ -20,7 +20,7 @@ export default function TeamsPage() {
       .catch(() => {});
   }, []);
 
-  const developers = usersList.filter((u) => u.role === "Developer");
+  const developers = usersList.filter((u) => u.role === "Developer" || u.role === "Admin");
 
   async function toggleMember(teamId: number, userId: number) {
     const team = teams.find((t) => t.id === teamId);

@@ -13,6 +13,8 @@ const REASON_CATEGORIES = [
   "Other",
 ];
 
+export const PROJECT_STATUSES: ProjectStatus[] = ["In Progress", "Finished", "Cancelled"];
+
 interface Props {
   currentUser: User;
   onViewProject: (id: number) => void;
@@ -57,7 +59,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
   }>({
     name: "",
     description: "",
-    status: "Planning",
+    status: "In Progress",
     priority: "Medium",
     startDate: "",
     dueDate: "",
@@ -138,7 +140,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     setCreateForm({
       name: "",
       description: "",
-      status: "Planning",
+      status: "In Progress",
       priority: "Medium",
       startDate: "",
       dueDate: "",
@@ -170,7 +172,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     setReasonForm({ reason: "", category: "Resource Constraints" });
   }
 
-  const developers = usersList.filter((u) => u.role === "Developer");
+  const developers = usersList.filter((u) => u.role === "Developer" || u.role === "Admin");
 
   return (
     <div className="space-y-6">
@@ -204,7 +206,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
           onChange={setStatusFilter}
           options={[
             { value: "All", label: "All Statuses" },
-            ...["Planning", "Working", "Overdue", "Finished"].map((s) => ({ value: s, label: s })),
+            ...PROJECT_STATUSES.map((s) => ({ value: s, label: s })),
           ]}
         />
         <Select
@@ -222,112 +224,130 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
         <EmptyState message="No projects match your filters." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((project) => (
-            <Card key={project.id} style={{ padding: 24 }}>
-              <div className="flex items-start justify-between mb-3">
-                <h3
-                  className="font-semibold text-sm leading-snug"
-                  style={{
-                    color: "var(--color-foreground)",
-                    fontFamily: "var(--font-display)",
-                    flex: 1,
-                  }}
-                >
-                  {project.name}
-                </h3>
-                <div className="flex gap-1 ml-2 flex-shrink-0">
-                  <Badge label={project.priority} type="priority" />
-                </div>
-              </div>
+          {filtered.map((project) => {
+            const isProjectOverdue =
+              Boolean(project.isOverdue) ||
+              Boolean(project.missedDeadlineReason) ||
+              Boolean(
+                project.dueDate &&
+                new Date(project.dueDate) < new Date() &&
+                project.status !== "Finished" &&
+                project.status !== "Cancelled"
+              );
 
-              <div className="flex items-center gap-2 mb-3">
-                <Badge label={project.status} />
-                {project.requestingDepartment && (
-                  <span className="text-xs" style={{ color: "var(--color-muted-foreground)" }}>
-                    {project.requestingDepartment}
-                  </span>
+            return (
+              <Card key={project.id} style={{ padding: 24 }}>
+                {isProjectOverdue && project.missedDeadlineReason && (
+                  <div className="mb-3 p-2.5 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800">
+                    ⚠️ Overdue — {project.reasonCategory || "Other"}: "{project.missedDeadlineReason}"
+                  </div>
                 )}
-              </div>
-
-              <div className="space-y-1 mb-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs" style={{ color: "var(--color-muted-foreground)" }}>
-                    Progress
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ fontFamily: "var(--font-mono)", color: "var(--color-muted-foreground)" }}
+                <div className="flex items-start justify-between mb-3">
+                  <h3
+                    className="font-semibold text-sm leading-snug"
+                    style={{
+                      color: "var(--color-foreground)",
+                      fontFamily: "var(--font-display)",
+                      flex: 1,
+                    }}
                   >
-                    {project.progress}%
-                  </span>
-                </div>
-                <ProgressBar
-                  value={project.progress}
-                  color={project.status === "Overdue" ? "#ef4444" : "#1a3896"}
-                />
-              </div>
-
-              <div
-                className="grid grid-cols-2 gap-2 mb-4 text-xs"
-                style={{ color: "var(--color-muted-foreground)" }}
-              >
-                <div className="col-span-2">
-                  <span className="block font-semibold mb-1" style={{ color: "var(--color-foreground)" }}>
-                    Assigned Developers
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {project.members && project.members.length > 0 ? (
-                      project.members.map((m) => (
-                        <span
-                          key={m.userId}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                          style={{ background: "#e0e7ff", color: "#1e3a8a" }}
-                        >
-                          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ background: "#1a3896" }}>
-                            {m.avatar}
-                          </span>
-                          {m.fullName}
-                        </span>
-                      ))
-                    ) : (
-                      <span style={{ color: "var(--color-muted-foreground)" }}>
-                        {project.ownerName || "Unassigned"}
-                      </span>
-                    )}
+                    {project.name}
+                  </h3>
+                  <div className="flex gap-1 ml-2 flex-shrink-0">
+                    <Badge label={project.priority} type="priority" />
                   </div>
                 </div>
-                <div>
-                  <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
-                    {project.customerName || "—"}
-                  </span>
-                  Customer
-                </div>
-                <div>
-                  <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
-                    {project.dueDate
-                      ? new Date(project.dueDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "—"}
-                  </span>
-                  Due date
-                </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => onViewProject(project.id)}>
-                  View Details
-                </Button>
-                {isAdmin && project.status === "Overdue" && !project.missedDeadlineReason && (
-                  <Button size="sm" variant="danger" onClick={() => setShowReason(project)}>
-                    Add Reason
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge label={project.status} />
+                  {isProjectOverdue && <Badge label="Overdue" />}
+                  {project.requestingDepartment && (
+                    <span className="text-xs" style={{ color: "var(--color-muted-foreground)" }}>
+                      {project.requestingDepartment}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: "var(--color-muted-foreground)" }}>
+                      Progress
+                    </span>
+                    <span
+                      className="text-xs"
+                      style={{ fontFamily: "var(--font-mono)", color: "var(--color-muted-foreground)" }}
+                    >
+                      {project.progress}%
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={project.progress}
+                    color={isProjectOverdue ? "#ef4444" : "#1a3896"}
+                  />
+                </div>
+
+                <div
+                  className="grid grid-cols-2 gap-2 mb-4 text-xs"
+                  style={{ color: "var(--color-muted-foreground)" }}
+                >
+                  <div className="col-span-2">
+                    <span className="block font-semibold mb-1" style={{ color: "var(--color-foreground)" }}>
+                      Assigned Developers
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {project.members && project.members.length > 0 ? (
+                        project.members.map((m) => (
+                          <span
+                            key={m.userId}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{ background: "#e0e7ff", color: "#1e3a8a" }}
+                          >
+                            <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ background: "#1a3896" }}>
+                              {m.avatar}
+                            </span>
+                            {m.fullName}
+                          </span>
+                        ))
+                      ) : (
+                        <span style={{ color: "var(--color-muted-foreground)" }}>
+                          {project.ownerName || "Unassigned"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
+                      {project.customerName || "—"}
+                    </span>
+                    Customer
+                  </div>
+                  <div>
+                    <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
+                      {project.dueDate
+                        ? new Date(project.dueDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </span>
+                    Due date
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => onViewProject(project.id)}>
+                    View Details
                   </Button>
-                )}
-              </div>
-            </Card>
-          ))}
+                  {isAdmin && isProjectOverdue && !project.missedDeadlineReason && (
+                    <Button size="sm" variant="danger" onClick={() => setShowReason(project)}>
+                      Add Reason
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -391,7 +411,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                 <Select
                   value={createForm.status}
                   onChange={(v) => setCreateForm((f) => ({ ...f, status: v as ProjectStatus }))}
-                  options={["Planning", "Working", "Overdue", "Finished"].map((s) => ({
+                  options={PROJECT_STATUSES.map((s) => ({
                     value: s,
                     label: s,
                   }))}
@@ -415,7 +435,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   className="block text-sm font-medium mb-1.5"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
-                  Assign Developers (Select one or more)
+                  Assign Developers & Admins (Select one or more)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
                   {developers.map((dev) => {
@@ -444,13 +464,15 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                         <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold" style={{ background: "#1a3896" }}>
                           {dev.avatar}
                         </span>
-                        <span className="truncate">{dev.fullName}</span>
+                        <span className="truncate">
+                          {dev.fullName} {dev.role === "Admin" && <span className="text-[10px] text-blue-600 font-semibold">(Admin)</span>}
+                        </span>
                       </label>
                     );
                   })}
                 </div>
                 {createForm.memberIds.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">Please select at least one developer for this project.</p>
+                  <p className="text-xs text-amber-600 mt-1">Please select at least one developer or admin for this project.</p>
                 )}
               </div>
               <div>

@@ -13,7 +13,7 @@ namespace Application.DTOs.Tasks.TaskItem
         [MaxLength(2000)]
         public string? Description { get; set; }
 
-        public TaskItemStatus Status { get; set; } = TaskItemStatus.Assigned;
+        public TaskItemStatus? Status { get; set; }
 
         public TaskPriority Priority { get; set; } = TaskPriority.Medium;
 

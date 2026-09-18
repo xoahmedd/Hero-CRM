@@ -8,7 +8,7 @@ namespace Domain.Entities.Projects
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public ProjectStatus Status { get; set; } = ProjectStatus.Planning;
+        public ProjectStatus Status { get; set; } = ProjectStatus.InProgress;
         public ProjectPriority Priority { get; set; } = ProjectPriority.Medium;
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }

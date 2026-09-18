@@ -66,46 +66,59 @@ export const authApi = {
   },
 };
 
+function normalizeProjectStatus(rawStatus?: any): ProjectStatus {
+  if (!rawStatus) return "In Progress";
+  const s = String(rawStatus).toLowerCase().replace(/[\s_-]/g, "");
+  if (s === "finished" || s === "completed") return "Finished";
+  if (s === "cancelled" || s === "canceled" || s === "rejected") return "Cancelled";
+  return "In Progress";
+}
+
 // Projects API
 export const projectsApi = {
   async getProjects(): Promise<Project[]> {
     const res = await apiClient.get<any[]>("/Projects");
-    return res.map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description || "",
-      status: p.status,
-      priority: p.priority,
-      startDate: p.startDate ? p.startDate.split("T")[0] : "",
-      dueDate: p.dueDate ? p.dueDate.split("T")[0] : "",
-      ownerId: p.ownerId,
-      ownerName: p.ownerName || "Unassigned",
-      customerId: p.customerId || 0,
-      customerName: p.customerName || "N/A",
-      requestingDepartment: p.requestingDepartment || "",
-      missedDeadlineReason: p.missedDeadlineReason || null,
-      reasonCategory: p.reasonCategory || null,
-      progress: p.status === "Finished" || p.status === "Completed" ? 100 : 50,
-      requestedBy: p.requestedBy,
-      businessJustification: p.businessJustification,
-      rejectionReason: p.rejectionReason,
-      members: (p.members || []).map((m: any) => ({
-        userId: m.userId,
-        fullName: m.fullName,
-        email: m.email,
-        avatar: m.profileImage || (m.fullName ? m.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
-      })),
-      memberIds: (p.members || []).map((m: any) => m.userId),
-    }));
+    return (Array.isArray(res) ? res : []).map((p) => {
+      const status = normalizeProjectStatus(p.status);
+      return {
+        id: p.id,
+        name: p.name,
+        description: p.description || "",
+        status,
+        priority: p.priority,
+        startDate: p.startDate ? p.startDate.split("T")[0] : "",
+        dueDate: p.dueDate ? p.dueDate.split("T")[0] : "",
+        ownerId: p.ownerId,
+        ownerName: p.ownerName || "Unassigned",
+        customerId: p.customerId || 0,
+        customerName: p.customerName || "N/A",
+        requestingDepartment: p.requestingDepartment || "",
+        missedDeadlineReason: p.missedDeadlineReason || null,
+        reasonCategory: p.reasonCategory || null,
+        isOverdue: Boolean(p.isOverdue) || Boolean(p.missedDeadlineReason) || Boolean(p.dueDate && new Date(p.dueDate) < new Date() && status === "In Progress"),
+        progress: typeof p.progress === "number" ? p.progress : (status === "Finished" ? 100 : 0),
+        requestedBy: p.requestedBy,
+        businessJustification: p.businessJustification,
+        rejectionReason: p.rejectionReason,
+        members: (p.members || []).map((m: any) => ({
+          userId: m.userId,
+          fullName: m.fullName,
+          email: m.email,
+          avatar: m.profileImage || (m.fullName ? m.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
+        })),
+        memberIds: (p.members || []).map((m: any) => m.userId),
+      };
+    });
   },
 
   async getProject(id: number): Promise<Project> {
     const p = await apiClient.get<any>(`/Projects/${id}`);
+    const status = normalizeProjectStatus(p.status);
     return {
       id: p.id,
       name: p.name,
       description: p.description || "",
-      status: p.status,
+      status,
       priority: p.priority,
       startDate: p.startDate ? p.startDate.split("T")[0] : "",
       dueDate: p.dueDate ? p.dueDate.split("T")[0] : "",
@@ -116,7 +129,8 @@ export const projectsApi = {
       requestingDepartment: p.requestingDepartment || "",
       missedDeadlineReason: p.missedDeadlineReason || null,
       reasonCategory: p.reasonCategory || null,
-      progress: p.status === "Finished" || p.status === "Completed" ? 100 : 50,
+      isOverdue: Boolean(p.isOverdue) || Boolean(p.missedDeadlineReason) || Boolean(p.dueDate && new Date(p.dueDate) < new Date() && status === "In Progress"),
+      progress: typeof p.progress === "number" ? p.progress : (status === "Finished" ? 100 : 0),
       requestedBy: p.requestedBy,
       businessJustification: p.businessJustification,
       rejectionReason: p.rejectionReason,
@@ -180,7 +194,7 @@ export const projectMembersApi = {
 export const tasksApi = {
   async getTasks(): Promise<Task[]> {
     const res = await apiClient.get<any[]>("/Tasks");
-    return res.map((t) => ({
+    return (Array.isArray(res) ? res : []).map((t) => ({
       id: t.id,
       title: t.title,
       description: t.description || "",
@@ -196,12 +210,24 @@ export const tasksApi = {
       createdById: t.createdById,
       dueDate: t.dueDate ? t.dueDate.split("T")[0] : "",
       createdAt: t.createdAt ? t.createdAt.split("T")[0] : "",
+      completedAt: t.completedAt ? t.completedAt : (t.status === "Completed" ? (t.updatedAt || t.createdAt || null) : null),
+      isOverdue: typeof t.isOverdue === "boolean"
+        ? t.isOverdue
+        : Boolean(t.missedDeadlineReason) || (
+            t.dueDate
+              ? (t.status === "Completed"
+                  ? (t.completedAt ? new Date(t.completedAt) > new Date(t.dueDate) : false)
+                  : (new Date(t.dueDate) < new Date() && t.status !== "Cancelled"))
+              : false
+          ),
+      missedDeadlineReason: t.missedDeadlineReason || null,
+      reasonCategory: t.reasonCategory || null,
     }));
   },
 
   async getTasksByProject(projectId: number): Promise<Task[]> {
     const res = await apiClient.get<any[]>(`/Tasks/project/${projectId}`);
-    return res.map((t) => ({
+    return (Array.isArray(res) ? res : []).map((t) => ({
       id: t.id,
       title: t.title,
       description: t.description || "",
@@ -212,11 +238,23 @@ export const tasksApi = {
       assignees: (t.assignees || []).map((a: any) => ({
         id: a.userId || a.id,
         name: a.fullName || a.name || "Assignee",
-        avatar: a.profileImage || "A",
+        avatar: a.profileImage || (a.fullName ? a.fullName.split(" ").map((n: string) => n[0]).join("") : "A"),
       })),
       createdById: t.createdById,
       dueDate: t.dueDate ? t.dueDate.split("T")[0] : "",
       createdAt: t.createdAt ? t.createdAt.split("T")[0] : "",
+      completedAt: t.completedAt ? t.completedAt : (t.status === "Completed" ? (t.updatedAt || t.createdAt || null) : null),
+      isOverdue: typeof t.isOverdue === "boolean"
+        ? t.isOverdue
+        : Boolean(t.missedDeadlineReason) || (
+            t.dueDate
+              ? (t.status === "Completed"
+                  ? (t.completedAt ? new Date(t.completedAt) > new Date(t.dueDate) : false)
+                  : (new Date(t.dueDate) < new Date() && t.status !== "Cancelled"))
+              : false
+          ),
+      missedDeadlineReason: t.missedDeadlineReason || null,
+      reasonCategory: t.reasonCategory || null,
     }));
   },
 
@@ -237,7 +275,11 @@ export const tasksApi = {
   },
 
   async updateTask(id: number, data: any): Promise<any> {
-    return await apiClient.put(`/Tasks/${id}`, data);
+    const payload = {
+      ...data,
+      dueDate: data.dueDate?.trim() ? data.dueDate : null,
+    };
+    return await apiClient.put(`/Tasks/${id}`, payload);
   },
 
   async updateTaskStatus(id: number, status: string): Promise<any> {
@@ -246,6 +288,10 @@ export const tasksApi = {
 
   async deleteTask(id: number): Promise<any> {
     return await apiClient.delete(`/Tasks/${id}`);
+  },
+
+  async submitMissedReason(id: number, reason: string, category: string): Promise<any> {
+    return await apiClient.put(`/Tasks/${id}/missed-reason`, { reason, category });
   },
 };
 

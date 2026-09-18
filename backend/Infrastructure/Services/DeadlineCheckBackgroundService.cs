@@ -61,7 +61,8 @@ namespace Infrastructure.Services
                 .Where(p => p.DueDate.HasValue &&
                             p.DueDate > now &&
                             p.DueDate <= approachingWindow &&
-                            p.Status != ProjectStatus.Finished)
+                            p.Status != ProjectStatus.Finished &&
+                            p.Status != ProjectStatus.Cancelled)
                 .ToListAsync(stoppingToken);
 
             foreach (var proj in approachingProjects)
@@ -85,16 +86,12 @@ namespace Infrastructure.Services
             var overdueProjects = await dbContext.Projects
                 .Where(p => p.DueDate.HasValue &&
                             p.DueDate < now &&
-                            p.Status != ProjectStatus.Finished)
+                            p.Status != ProjectStatus.Finished &&
+                            p.Status != ProjectStatus.Cancelled)
                 .ToListAsync(stoppingToken);
 
             foreach (var proj in overdueProjects)
             {
-                if (proj.Status != ProjectStatus.Overdue)
-                {
-                    proj.Status = ProjectStatus.Overdue;
-                    proj.UpdatedAt = DateTime.UtcNow;
-                }
 
                 bool exists = await dbContext.Notifications.AnyAsync(n =>
                     n.UserId == proj.OwnerId &&
@@ -117,7 +114,8 @@ namespace Infrastructure.Services
                 .Include(t => t.Assignees)
                 .Where(t => t.DueDate.HasValue &&
                             t.DueDate < now &&
-                            t.Status != TaskItemStatus.Completed)
+                            t.Status != TaskItemStatus.Completed &&
+                            t.Status != TaskItemStatus.Cancelled)
                 .ToListAsync(stoppingToken);
 
             foreach (var task in overdueTasks)

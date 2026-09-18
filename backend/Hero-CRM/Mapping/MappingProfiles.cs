@@ -65,7 +65,9 @@ namespace Hero_CRM.Mapping
 
             #region Project Mappings
             CreateMap<Project, ProjectResponse>()
-                .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src => src.DueDate.HasValue && src.DueDate.Value < DateTime.UtcNow && src.Status != ProjectStatus.Finished));
+                .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src =>
+                    !string.IsNullOrEmpty(src.MissedDeadlineReason) ||
+                    (src.DueDate.HasValue && src.DueDate.Value < DateTime.UtcNow && src.Status != ProjectStatus.Finished && src.Status != ProjectStatus.Cancelled)));
             CreateMap<ProjectResponse, Project>();
 
             CreateMap<CreateProjectRequest, Project>()
@@ -94,7 +96,13 @@ namespace Hero_CRM.Mapping
             CreateMap<AssignTagRequest, TaskTag>();
 
             CreateMap<TaskItem, TaskResponse>()
-                .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src => src.DueDate.HasValue && src.DueDate.Value < DateTime.UtcNow && src.Status != TaskItemStatus.Completed));
+                .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src =>
+                    !string.IsNullOrEmpty(src.MissedDeadlineReason) ||
+                    (src.DueDate.HasValue && (
+                        src.Status == TaskItemStatus.Completed
+                            ? (src.CompletedAt.HasValue && src.CompletedAt.Value > src.DueDate.Value)
+                            : (src.DueDate.Value < DateTime.UtcNow && src.Status != TaskItemStatus.Cancelled)
+                    ))));
             CreateMap<TaskResponse, TaskItem>();
             CreateMap<TaskAssignee, TaskAssigneeResponse>();
             CreateMap<CreateTaskRequest, TaskItem>()
@@ -105,7 +113,8 @@ namespace Hero_CRM.Mapping
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.ProjectId, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Condition(src => src.Status.HasValue));
             #endregion
 
             #region Team Mappings

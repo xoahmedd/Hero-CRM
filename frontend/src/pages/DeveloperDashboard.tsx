@@ -2,7 +2,16 @@ import { useState, useEffect } from "react";
 import type { User, Project, Task } from "../data/mock";
 import { MOCK_PROJECTS, MOCK_TASKS } from "../data/mock";
 import { projectsApi, tasksApi } from "../api/services";
-import { Badge, Card, KpiCard, ProgressBar, SectionHeader } from "../components/ui";
+import { Badge, Button, Card, KpiCard, Modal, ProgressBar, SectionHeader, Select } from "../components/ui";
+
+const REASON_CATEGORIES = [
+  "Resource Constraints",
+  "Scope Creep",
+  "Technical Debt",
+  "External Blocker",
+  "Client Delay",
+  "Other",
+];
 
 interface Props {
   currentUser: User;
@@ -12,6 +21,13 @@ interface Props {
 export default function DeveloperDashboard({ currentUser, onNavigateProject }: Props) {
   const [projectsList, setProjectsList] = useState<Project[]>(MOCK_PROJECTS);
   const [tasksList, setTasksList] = useState<Task[]>(MOCK_TASKS);
+  const [showReasonItem, setShowReasonItem] = useState<{
+    type: "Project" | "Task";
+    id: number;
+    title: string;
+    dueDate?: string;
+  } | null>(null);
+  const [reasonForm, setReasonForm] = useState({ reason: "", category: "Resource Constraints" });
 
   useEffect(() => {
     projectsApi.getProjects()
@@ -27,7 +43,8 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
       (p.ownerId === currentUser.id ||
         p.members?.some((m) => m.userId === currentUser.id) ||
         p.memberIds?.includes(currentUser.id)) &&
-      p.status !== "Finished"
+      p.status !== "Finished" &&
+      p.status !== "Cancelled"
   );
   const myTasks = tasksList.filter(
     (t) => t.assignees.some((a) => a.id === currentUser.id)
@@ -36,19 +53,47 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
   const completedTasks = myTasks.filter((t) => t.status === "Completed");
   const overdueTasks = myTasks.filter((t) => {
     const due = new Date(t.dueDate);
-    return due < new Date() && t.status !== "Completed" && t.status !== "Cancelled";
+    return (t.isOverdue || due < new Date()) && t.status !== "Completed" && t.status !== "Cancelled";
   });
-  const pendingReasons = projectsList.filter(
+  const pendingProjectReasons = projectsList.filter(
     (p) =>
-      p.status === "Overdue" &&
+      (Boolean(p.isOverdue) || Boolean(p.dueDate && new Date(p.dueDate) < new Date())) &&
+      p.status !== "Finished" &&
+      p.status !== "Cancelled" &&
       (p.ownerId === currentUser.id ||
         p.members?.some((m) => m.userId === currentUser.id) ||
         p.memberIds?.includes(currentUser.id)) &&
       !p.missedDeadlineReason
   );
+  const pendingTaskReasons = myTasks.filter(
+    (t) =>
+      (t.isOverdue || (t.dueDate && new Date(t.dueDate) < new Date())) &&
+      t.status !== "Completed" &&
+      t.status !== "Cancelled" &&
+      !t.missedDeadlineReason
+  );
+  const totalPendingReasons = pendingProjectReasons.length + pendingTaskReasons.length;
 
   const upcoming = [...activeTasks].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).slice(0, 6);
 
+  async function handleSubmitReason() {
+    if (!showReasonItem) return;
+    try {
+      if (showReasonItem.type === "Project") {
+        await projectsApi.submitMissedReason(showReasonItem.id, reasonForm.reason, reasonForm.category);
+        const projs = await projectsApi.getProjects();
+        setProjectsList(projs);
+      } else {
+        await tasksApi.submitMissedReason(showReasonItem.id, reasonForm.reason, reasonForm.category);
+        const ts = await tasksApi.getTasks();
+        setTasksList(ts);
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to submit reason");
+    }
+    setShowReasonItem(null);
+    setReasonForm({ reason: "", category: "Resource Constraints" });
+  }
 
   return (
     <div className="space-y-6">
@@ -62,19 +107,40 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
       </div>
 
       {/* Pending reason alert */}
-      {pendingReasons.length > 0 && (
+      {totalPendingReasons > 0 && (
         <div
-          className="flex items-start gap-3 p-4 rounded-xl"
+          className="flex flex-col gap-3 p-4 rounded-xl"
           style={{ background: "#fef2f2", border: "1px solid #fca5a5" }}
         >
-          <span style={{ fontSize: 20 }}>⚠️</span>
-          <div>
-            <div className="font-semibold text-sm" style={{ color: "#b91c1c", fontFamily: "var(--font-display)" }}>
-              Missed deadline justification required
+          <div className="flex items-start gap-3">
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <div className="flex-1">
+              <div className="font-semibold text-sm" style={{ color: "#b91c1c", fontFamily: "var(--font-display)" }}>
+                Missed deadline justification required
+              </div>
+              <div className="text-sm mt-0.5" style={{ color: "#991b1b" }}>
+                You have {totalPendingReasons} overdue {totalPendingReasons === 1 ? "item" : "items"} awaiting delay justification.
+              </div>
             </div>
-            <div className="text-sm mt-0.5" style={{ color: "#991b1b" }}>
-              {pendingReasons.map((p) => p.name).join(", ")} — please submit your delay justification.
-            </div>
+          </div>
+
+          <div className="space-y-2 pl-8">
+            {pendingProjectReasons.map((p) => (
+              <div key={`p-${p.id}`} className="flex items-center justify-between text-xs bg-white/80 p-2 rounded-lg border border-red-200">
+                <span>📁 <strong>Project:</strong> {p.name}</span>
+                <Button size="sm" variant="danger" onClick={() => setShowReasonItem({ type: "Project", id: p.id, title: p.name, dueDate: p.dueDate })}>
+                  Add Reason
+                </Button>
+              </div>
+            ))}
+            {pendingTaskReasons.map((t) => (
+              <div key={`t-${t.id}`} className="flex items-center justify-between text-xs bg-white/80 p-2 rounded-lg border border-red-200">
+                <span>📝 <strong>Task:</strong> {t.title} ({t.projectName})</span>
+                <Button size="sm" variant="danger" onClick={() => setShowReasonItem({ type: "Task", id: t.id, title: t.title, dueDate: t.dueDate })}>
+                  Add Reason
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -89,26 +155,61 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
             <div className="space-y-3">
               {upcoming.map((task) => {
                 const due = new Date(task.dueDate);
-                const isOverdue = due < new Date();
+                const isOverdue =
+                  task.isOverdue ||
+                  (due < new Date() && task.status !== "Completed" && task.status !== "Cancelled");
                 return (
                   <div
                     key={task.id}
-                    className="flex items-start justify-between p-3 rounded-lg"
-                    style={{ background: "#f8fafc", border: "1px solid var(--color-border)" }}
+                    className={`flex flex-col gap-2 p-3 rounded-lg transition-all ${
+                      isOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : ""
+                    }`}
+                    style={{ background: "#f8fafc", border: isOverdue ? undefined : "1px solid var(--color-border)" }}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>{task.title}</div>
-                      <div className="text-xs mt-0.5 truncate" style={{ color: "var(--color-muted-foreground)" }}>{task.projectName}</div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
+                          {task.title}
+                        </div>
+                        <div className="text-xs mt-0.5 truncate" style={{ color: "var(--color-muted-foreground)" }}>
+                          {task.projectName}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                        {isOverdue ? <Badge label="Overdue" /> : <Badge label={task.status} />}
+                        <span
+                          className="text-xs font-medium"
+                          style={{ fontFamily: "var(--font-mono)", color: isOverdue ? "#ef4444" : "#94a3b8" }}
+                        >
+                          {isOverdue && "⚠️"} {due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                      <Badge label={task.status} />
-                      <span
-                        className="text-xs"
-                        style={{ fontFamily: "var(--font-mono)", color: isOverdue ? "#ef4444" : "#94a3b8" }}
-                      >
-                        {due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    </div>
+
+                    {isOverdue && (
+                      <div className="flex items-center justify-between pt-1.5 text-xs border-t border-rose-100 mt-1">
+                        {task.missedDeadlineReason ? (
+                          <span className="text-rose-800 italic truncate max-w-[240px]">
+                            Delay ({task.reasonCategory || "Other"}): "{task.missedDeadlineReason}"
+                          </span>
+                        ) : (
+                          <span className="text-rose-700 font-medium">Delay justification required</span>
+                        )}
+                        <button
+                          onClick={() =>
+                            setShowReasonItem({
+                              type: "Task",
+                              id: task.id,
+                              title: task.title,
+                              dueDate: task.dueDate,
+                            })
+                          }
+                          className="text-xs text-rose-700 hover:text-rose-900 underline font-semibold cursor-pointer ml-auto"
+                        >
+                          {task.missedDeadlineReason ? "Edit Reason" : "+ Add Reason"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -154,6 +255,61 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
           )}
         </Card>
       </div>
+
+      {/* Reason Modal */}
+      {showReasonItem && (
+        <Modal
+          title={`Submit Missed Deadline Reason (${showReasonItem.type})`}
+          onClose={() => setShowReasonItem(null)}
+        >
+          <div className="space-y-4">
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+              <span className="text-slate-500">{showReasonItem.type}:</span>{" "}
+              <strong className="text-slate-800">{showReasonItem.title}</strong>
+              {showReasonItem.dueDate && (
+                <div className="text-slate-500 mt-0.5">
+                  Due date: {new Date(showReasonItem.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
+                Category
+              </label>
+              <Select
+                value={reasonForm.category}
+                onChange={(v) => setReasonForm((f) => ({ ...f, category: v }))}
+                options={REASON_CATEGORIES.map((c) => ({ value: c, label: c }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
+                Delay Justification
+              </label>
+              <textarea
+                rows={3}
+                value={reasonForm.reason}
+                onChange={(e) => setReasonForm((f) => ({ ...f, reason: e.target.value }))}
+                placeholder={`Describe what caused the ${showReasonItem.type.toLowerCase()} delay…`}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                style={{
+                  border: "1px solid var(--color-border)",
+                  fontFamily: "var(--font-body)",
+                  resize: "vertical",
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setShowReasonItem(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitReason} disabled={!reasonForm.reason.trim()}>
+                Submit Reason
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

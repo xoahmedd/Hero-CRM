@@ -94,6 +94,16 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            response.CompletedAt = task.CompletedAt;
+            response.IsOverdue = !string.IsNullOrEmpty(task.MissedDeadlineReason) ||
+                                 (task.DueDate.HasValue && (
+                                     task.Status == TaskItemStatus.Completed
+                                         ? (task.CompletedAt.HasValue && task.CompletedAt.Value > task.DueDate.Value)
+                                         : (task.DueDate.Value < DateTime.UtcNow && task.Status != TaskItemStatus.Cancelled)
+                                 ));
+            response.MissedDeadlineReason = task.MissedDeadlineReason;
+            response.ReasonCategory = task.ReasonCategory;
+
             return response;
         }
 
@@ -222,7 +232,10 @@ namespace Hero_CRM.Controllers
             if (!IsAdmin)
             {
                 var userId = CurrentUserId;
-                query = query.Where(t => t.Assignees.Any(a => a.UserId == userId));
+                if (project.OwnerId != userId)
+                {
+                    query = query.Where(t => t.Assignees.Any(a => a.UserId == userId) || t.CreatedById == userId);
+                }
             }
 
             if (pageIndex.HasValue || pageSize.HasValue)
@@ -397,10 +410,20 @@ namespace Hero_CRM.Controllers
 
 
         // POST: api/Tasks
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<TaskResponse>> CreateTask(CreateTaskRequest request)
         {
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var projectCheck = await _projectRepo.GetByIdAsync(request.ProjectId);
+                if (projectCheck == null || (projectCheck.OwnerId != userId && !await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == request.ProjectId && pm.UserId == userId)))
+                {
+                    return Forbid();
+                }
+            }
+
             var project = await _projectRepo.GetByIdAsync(request.ProjectId);
 
             if (project == null)
@@ -457,7 +480,7 @@ namespace Hero_CRM.Controllers
         }
 
         // PUT: api/Tasks/5
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateTask(int id, UpdateTaskRequest request)
         {
@@ -469,6 +492,43 @@ namespace Hero_CRM.Controllers
                 {
                     message = "Task not found."
                 });
+            }
+
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var isAssigned = await _context.TaskAssignees
+                    .AnyAsync(ta => ta.TaskItemId == id && ta.UserId == userId);
+                var project = await _projectRepo.GetByIdAsync(task.ProjectId);
+                var isProjectOwner = project != null && project.OwnerId == userId;
+
+                if (task.CreatedById != userId && !isAssigned && !isProjectOwner)
+                {
+                    return Forbid();
+                }
+
+                if (request.Status.HasValue && request.Status.Value != task.Status)
+                {
+                    if (request.Status.Value != TaskItemStatus.Review)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "Developers can only submit assigned tasks for Review."
+                        });
+                    }
+                }
+            }
+
+            if (request.Status.HasValue)
+            {
+                if (request.Status.Value == TaskItemStatus.Completed && task.Status != TaskItemStatus.Completed)
+                {
+                    task.CompletedAt = DateTime.UtcNow;
+                }
+                else if (request.Status.Value != TaskItemStatus.Completed && task.Status == TaskItemStatus.Completed)
+                {
+                    task.CompletedAt = null;
+                }
             }
 
             _mapper.Map(request, task);
@@ -512,17 +572,25 @@ namespace Hero_CRM.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            var updatedResponse = await MapToResponseAsync(task);
+
             return Ok(new
             {
-                message = "Task updated successfully."
+                message = "Task updated successfully.",
+                task = updatedResponse
             });
         }
 
         // DELETE: api/Tasks/5
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTask(int id)
         {
+            if (!IsAdmin)
+            {
+                return Forbid();
+            }
+
             var task = await _taskRepo.GetByIdAsync(id);
 
             if (task == null)
@@ -543,10 +611,21 @@ namespace Hero_CRM.Controllers
         }
 
         // POST: api/Tasks/{taskId}/assignees/{userId}
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpPost("{taskId:int}/assignees/{userId:int}")]
         public async Task<IActionResult> AssignUserToTask(int taskId, int userId)
         {
+            if (!IsAdmin)
+            {
+                var currentUid = CurrentUserId;
+                var taskCheck = await _taskRepo.GetByIdAsync(taskId);
+                var proj = taskCheck != null ? await _projectRepo.GetByIdAsync(taskCheck.ProjectId) : null;
+                if (proj == null || proj.OwnerId != currentUid)
+                {
+                    return Forbid();
+                }
+            }
+
             var task = await _taskRepo.GetByIdAsync(taskId);
 
             if (task == null)
@@ -609,6 +688,16 @@ namespace Hero_CRM.Controllers
             if (task == null)
             {
                 return NotFound(new { message = "Task not found." });
+            }
+
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var isAssigned = await _context.TaskAssignees.AnyAsync(a => a.TaskItemId == id && a.UserId == userId);
+                if (!isAssigned && task.CreatedById != userId)
+                {
+                    return Forbid();
+                }
             }
 
             if (string.IsNullOrWhiteSpace(dto.Reason))
@@ -732,10 +821,21 @@ namespace Hero_CRM.Controllers
         }
 
         // DELETE: api/Tasks/{taskId}/assignees/{userId}
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpDelete("{taskId:int}/assignees/{userId:int}")]
         public async Task<IActionResult> RemoveUserFromTask(int taskId, int userId)
         {
+            if (!IsAdmin)
+            {
+                var currentUid = CurrentUserId;
+                var taskCheck = await _taskRepo.GetByIdAsync(taskId);
+                var proj = taskCheck != null ? await _projectRepo.GetByIdAsync(taskCheck.ProjectId) : null;
+                if (proj == null || proj.OwnerId != currentUid)
+                {
+                    return Forbid();
+                }
+            }
+
             var assignment = await _context.TaskAssignees
                 .FirstOrDefaultAsync(a => a.TaskItemId == taskId && a.UserId == userId);
 
@@ -815,6 +915,15 @@ namespace Hero_CRM.Controllers
                 }
             }
 
+            if (targetStatus.Value == TaskItemStatus.Completed && task.Status != TaskItemStatus.Completed)
+            {
+                task.CompletedAt = DateTime.UtcNow;
+            }
+            else if (targetStatus.Value != TaskItemStatus.Completed && task.Status == TaskItemStatus.Completed)
+            {
+                task.CompletedAt = null;
+            }
+
             task.Status = targetStatus.Value;
             task.UpdatedAt = DateTime.UtcNow;
 
@@ -879,10 +988,21 @@ namespace Hero_CRM.Controllers
         }
 
         // PATCH: api/Tasks/{id}/priority
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpPatch("{id:int}/priority")]
         public async Task<IActionResult> UpdateTaskPriority(int id, [FromQuery] TaskPriority priority)
         {
+            if (!IsAdmin)
+            {
+                var currentUid = CurrentUserId;
+                var taskCheck = await _taskRepo.GetByIdAsync(id);
+                var proj = taskCheck != null ? await _projectRepo.GetByIdAsync(taskCheck.ProjectId) : null;
+                if (proj == null || proj.OwnerId != currentUid)
+                {
+                    return Forbid();
+                }
+            }
+
             var task = await _taskRepo.GetByIdAsync(id);
 
             if (task == null)

@@ -98,6 +98,17 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            // Calculate completion percentage: completed tasks / total tasks (assigned, review, completed), ignoring cancelled
+            var projectTasks = await _context.TaskItems
+                .AsNoTracking()
+                .Where(t => t.ProjectId == project.Id && t.Status != TaskItemStatus.Cancelled)
+                .Select(t => t.Status)
+                .ToListAsync();
+
+            var totalTasks = projectTasks.Count;
+            var completedTasks = projectTasks.Count(s => s == TaskItemStatus.Completed);
+            response.Progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
+
             return response;
         }
 
@@ -116,7 +127,8 @@ namespace Hero_CRM.Controllers
                 var userId = CurrentUserId;
                 query = query.Where(p =>
                     p.OwnerId == userId ||
-                    p.Members.Any(m => m.UserId == userId));
+                    p.Members.Any(m => m.UserId == userId) ||
+                    p.Tasks.Any(t => t.Assignees.Any(ta => ta.UserId == userId)));
             }
 
             if (pageIndex.HasValue || pageSize.HasValue || !string.IsNullOrWhiteSpace(search) || status.HasValue)
@@ -188,7 +200,8 @@ namespace Hero_CRM.Controllers
                 var isAssigned = await _projectRepo.GetQueryable()
                     .Where(p => p.Id == id && (
                         p.OwnerId == userId ||
-                        p.Members.Any(m => m.UserId == userId)))
+                        p.Members.Any(m => m.UserId == userId) ||
+                        p.Tasks.Any(t => t.Assignees.Any(ta => ta.UserId == userId))))
                     .AnyAsync();
 
                 if (!isAssigned)
@@ -460,14 +473,15 @@ namespace Hero_CRM.Controllers
         {
             var now = DateTime.UtcNow;
             var query = _projectRepo.GetQueryable()
-                .Where(p => (p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished) || p.Status == ProjectStatus.Overdue);
+                .Where(p => (p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled) || p.Status == ProjectStatus.Overdue);
 
             if (!IsAdmin)
             {
                 var userId = CurrentUserId;
                 query = query.Where(p =>
                     p.OwnerId == userId ||
-                    p.Members.Any(m => m.UserId == userId));
+                    p.Members.Any(m => m.UserId == userId) ||
+                    p.Tasks.Any(t => t.Assignees.Any(ta => ta.UserId == userId)));
             }
 
             var overdueProjects = await query

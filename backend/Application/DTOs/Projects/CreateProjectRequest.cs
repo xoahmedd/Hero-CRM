@@ -17,7 +17,7 @@ namespace Application.DTOs.Projects
         [MaxLength(1000)]
         public string? Description { get; set; }
 
-        public ProjectStatus Status { get; set; } = ProjectStatus.Planning;
+        public ProjectStatus Status { get; set; } = ProjectStatus.InProgress;
 
         public ProjectPriority Priority { get; set; } = ProjectPriority.Medium;
 

@@ -1,5 +1,5 @@
 export type Role = "Admin" | "Developer";
-export type ProjectStatus = "Planning" | "Working" | "Overdue" | "Finished";
+export type ProjectStatus = "In Progress" | "Finished" | "Cancelled";
 export type Priority = "Low" | "Medium" | "High" | "Urgent";
 export type TaskStatus = "Assigned" | "Review" | "Completed" | "Cancelled";
 export type CustomerStatus = "Lead" | "Active" | "Inactive" | "Archived";
@@ -61,6 +61,10 @@ export interface Task {
   createdById: number;
   dueDate: string;
   createdAt: string;
+  isOverdue?: boolean;
+  missedDeadlineReason?: string | null;
+  reasonCategory?: string | null;
+  completedAt?: string | null;
 }
 
 export interface SubTask {
@@ -120,13 +124,13 @@ export const MOCK_CUSTOMERS: Customer[] = [
 ];
 
 export const MOCK_PROJECTS: Project[] = [
-  { id: 1, name: "Apex CRM Portal Redesign", description: "Full redesign of the customer portal with new UX patterns and mobile responsiveness.", status: "Working", priority: "High", startDate: "2026-07-01", dueDate: "2026-10-15", ownerId: 2, ownerName: "James Okafor", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "IT", missedDeadlineReason: null, reasonCategory: null, progress: 62 },
-  { id: 2, name: "NovaTech API Gateway", description: "Build and deploy a unified API gateway for NovaTech microservices architecture.", status: "Working", priority: "Urgent", startDate: "2026-06-15", dueDate: "2026-09-30", ownerId: 3, ownerName: "Priya Mehta", customerId: 2, customerName: "NovaTech Solutions", requestingDepartment: "Engineering", missedDeadlineReason: null, reasonCategory: null, progress: 78 },
-  { id: 3, name: "HR Onboarding Automation", description: "Automated onboarding workflow platform for new hire documentation and approvals.", status: "Overdue", priority: "Medium", startDate: "2026-05-01", dueDate: "2026-08-31", ownerId: 4, ownerName: "Lucas Rivera", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "Human Resources", missedDeadlineReason: null, reasonCategory: null, progress: 45 },
+  { id: 1, name: "Apex CRM Portal Redesign", description: "Full redesign of the customer portal with new UX patterns and mobile responsiveness.", status: "In Progress", priority: "High", startDate: "2026-07-01", dueDate: "2026-10-15", ownerId: 2, ownerName: "James Okafor", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "IT", missedDeadlineReason: null, reasonCategory: null, progress: 62 },
+  { id: 2, name: "NovaTech API Gateway", description: "Build and deploy a unified API gateway for NovaTech microservices architecture.", status: "In Progress", priority: "Urgent", startDate: "2026-06-15", dueDate: "2026-09-30", ownerId: 3, ownerName: "Priya Mehta", customerId: 2, customerName: "NovaTech Solutions", requestingDepartment: "Engineering", missedDeadlineReason: null, reasonCategory: null, progress: 78 },
+  { id: 3, name: "HR Onboarding Automation", description: "Automated onboarding workflow platform for new hire documentation and approvals.", status: "In Progress", priority: "Medium", startDate: "2026-05-01", dueDate: "2026-08-31", ownerId: 4, ownerName: "Lucas Rivera", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "Human Resources", missedDeadlineReason: "Resource Constraints", reasonCategory: "Resource Constraints", progress: 45 },
   { id: 4, name: "Meridian Compliance Dashboard", description: "Real-time compliance monitoring and reporting dashboard for financial regulations.", status: "Finished", priority: "High", startDate: "2026-03-01", dueDate: "2026-07-15", ownerId: 2, ownerName: "James Okafor", customerId: 4, customerName: "Meridian Financial", requestingDepartment: "Legal", missedDeadlineReason: null, reasonCategory: null, progress: 100 },
-  { id: 5, name: "EuroRetail Market Expansion", description: "Platform localization and EU compliance for 3 new regional market launches.", status: "Planning", priority: "High", startDate: "2026-09-20", dueDate: "2026-12-31", ownerId: 6, ownerName: "David Park", customerId: 5, customerName: "EuroRetail Group", requestingDepartment: "Sales", missedDeadlineReason: null, reasonCategory: null, progress: 8 },
-  { id: 6, name: "Quantum Analytics Data Pipeline", description: "ETL pipeline and warehousing solution for large-scale analytics ingestion.", status: "Planning", priority: "Medium", startDate: "2026-10-01", dueDate: "2026-11-30", ownerId: 6, ownerName: "David Park", customerId: 6, customerName: "Quantum Analytics", requestingDepartment: "Data Science", missedDeadlineReason: null, reasonCategory: null, progress: 15 },
-  { id: 7, name: "SkyBridge Fleet Tracker", description: "GPS-integrated fleet management and route optimization system.", status: "Planning", priority: "High", startDate: "2026-09-01", dueDate: "2026-10-01", ownerId: 4, ownerName: "Lucas Rivera", customerId: 3, customerName: "SkyBridge Logistics", requestingDepartment: "Operations", missedDeadlineReason: null, reasonCategory: null, progress: 20 },
+  { id: 5, name: "EuroRetail Market Expansion", description: "Platform localization and EU compliance for 3 new regional market launches.", status: "In Progress", priority: "High", startDate: "2026-09-20", dueDate: "2026-12-31", ownerId: 6, ownerName: "David Park", customerId: 5, customerName: "EuroRetail Group", requestingDepartment: "Sales", missedDeadlineReason: null, reasonCategory: null, progress: 8 },
+  { id: 6, name: "Quantum Analytics Data Pipeline", description: "ETL pipeline and warehousing solution for large-scale analytics ingestion.", status: "In Progress", priority: "Medium", startDate: "2026-10-01", dueDate: "2026-11-30", ownerId: 6, ownerName: "David Park", customerId: 6, customerName: "Quantum Analytics", requestingDepartment: "Data Science", missedDeadlineReason: null, reasonCategory: null, progress: 15 },
+  { id: 7, name: "SkyBridge Fleet Tracker", description: "GPS-integrated fleet management and route optimization system.", status: "Cancelled", priority: "High", startDate: "2026-09-01", dueDate: "2026-10-01", ownerId: 4, ownerName: "Lucas Rivera", customerId: 3, customerName: "SkyBridge Logistics", requestingDepartment: "Operations", missedDeadlineReason: null, reasonCategory: null, progress: 20 },
   { id: 8, name: "Internal Knowledge Base", description: "Wiki-style internal knowledge base with search, versioning, and access control.", status: "Finished", priority: "Low", startDate: "2026-02-01", dueDate: "2026-06-30", ownerId: 8, ownerName: "Marco Ferretti", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "IT", missedDeadlineReason: null, reasonCategory: null, progress: 100 },
 ];
 

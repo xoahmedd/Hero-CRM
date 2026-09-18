@@ -17,6 +17,7 @@ namespace Domain.Entities.Tasks
         public string? ReasonCategory { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
 
 
         public Project Project { get; set; } = null!;

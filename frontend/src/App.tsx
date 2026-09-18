@@ -12,6 +12,7 @@ import CustomersPage from "./pages/CustomersPage";
 import ReportsPage from "./pages/ReportsPage";
 import UsersPage from "./pages/UsersPage";
 import TeamsPage from "./pages/TeamsPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 type Page =
   | "dashboard-admin"
@@ -138,7 +139,9 @@ export default function App() {
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
-      {renderPage()}
+      <ErrorBoundary onReset={() => setCurrentPage("projects")}>
+        {renderPage()}
+      </ErrorBoundary>
     </Layout>
   );
 }

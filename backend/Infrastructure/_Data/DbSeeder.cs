@@ -101,13 +101,13 @@ namespace Infrastructure._Data
             {
                 var projects = new List<Project>
                 {
-                    new Project { Name = "Apex CRM Portal Redesign", Description = "Full redesign of customer portal with new UX patterns.", Status = ProjectStatus.Working, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(-60), DueDate = DateTime.UtcNow.AddDays(30), OwnerId = devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "IT" },
-                    new Project { Name = "NovaTech API Gateway", Description = "Build and deploy unified API gateway.", Status = ProjectStatus.Working, Priority = ProjectPriority.Urgent, StartDate = DateTime.UtcNow.AddDays(-45), DueDate = DateTime.UtcNow.AddDays(15), OwnerId = devPriya?.Id ?? devJames.Id, CustomerId = custNova?.Id, RequestingDepartment = "Engineering" },
-                    new Project { Name = "HR Onboarding Automation", Description = "Automated onboarding workflow platform.", Status = ProjectStatus.Overdue, Priority = ProjectPriority.Medium, StartDate = DateTime.UtcNow.AddDays(-90), DueDate = DateTime.UtcNow.AddDays(-10), OwnerId = devLucas?.Id ?? devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "Human Resources" },
+                    new Project { Name = "Apex CRM Portal Redesign", Description = "Full redesign of customer portal with new UX patterns.", Status = ProjectStatus.InProgress, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(-60), DueDate = DateTime.UtcNow.AddDays(30), OwnerId = devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "IT" },
+                    new Project { Name = "NovaTech API Gateway", Description = "Build and deploy unified API gateway.", Status = ProjectStatus.InProgress, Priority = ProjectPriority.Urgent, StartDate = DateTime.UtcNow.AddDays(-45), DueDate = DateTime.UtcNow.AddDays(15), OwnerId = devPriya?.Id ?? devJames.Id, CustomerId = custNova?.Id, RequestingDepartment = "Engineering" },
+                    new Project { Name = "HR Onboarding Automation", Description = "Automated onboarding workflow platform.", Status = ProjectStatus.InProgress, Priority = ProjectPriority.Medium, StartDate = DateTime.UtcNow.AddDays(-90), DueDate = DateTime.UtcNow.AddDays(-10), OwnerId = devLucas?.Id ?? devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "Human Resources" },
                     new Project { Name = "Meridian Compliance Dashboard", Description = "Real-time compliance monitoring dashboard.", Status = ProjectStatus.Finished, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(-120), DueDate = DateTime.UtcNow.AddDays(-20), OwnerId = devJames.Id, CustomerId = custMeridian?.Id, RequestingDepartment = "Legal" },
-                    new Project { Name = "EuroRetail Market Expansion", Description = "Platform localization for EU market launch.", Status = ProjectStatus.Planning, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(10), DueDate = DateTime.UtcNow.AddDays(100), OwnerId = devDavid?.Id ?? devJames.Id, CustomerId = custEuro?.Id, RequestingDepartment = "Sales" },
-                    new Project { Name = "Quantum Analytics Data Pipeline", Description = "ETL pipeline for analytics ingestion.", Status = ProjectStatus.Planning, Priority = ProjectPriority.Medium, StartDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(60), OwnerId = devDavid?.Id ?? devJames.Id, CustomerId = custQuantum?.Id, RequestingDepartment = "Data Science" },
-                    new Project { Name = "SkyBridge Fleet Tracker", Description = "GPS-integrated fleet management.", Status = ProjectStatus.Planning, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(40), OwnerId = devLucas?.Id ?? devJames.Id, CustomerId = custSky?.Id, RequestingDepartment = "Operations" },
+                    new Project { Name = "EuroRetail Market Expansion", Description = "Platform localization for EU market launch.", Status = ProjectStatus.InProgress, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(10), DueDate = DateTime.UtcNow.AddDays(100), OwnerId = devDavid?.Id ?? devJames.Id, CustomerId = custEuro?.Id, RequestingDepartment = "Sales" },
+                    new Project { Name = "Quantum Analytics Data Pipeline", Description = "ETL pipeline for analytics ingestion.", Status = ProjectStatus.InProgress, Priority = ProjectPriority.Medium, StartDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(60), OwnerId = devDavid?.Id ?? devJames.Id, CustomerId = custQuantum?.Id, RequestingDepartment = "Data Science" },
+                    new Project { Name = "SkyBridge Fleet Tracker", Description = "GPS-integrated fleet management.", Status = ProjectStatus.Cancelled, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(40), OwnerId = devLucas?.Id ?? devJames.Id, CustomerId = custSky?.Id, RequestingDepartment = "Operations" },
                     new Project { Name = "Internal Knowledge Base", Description = "Wiki-style internal knowledge base.", Status = ProjectStatus.Finished, Priority = ProjectPriority.Low, StartDate = DateTime.UtcNow.AddDays(-150), DueDate = DateTime.UtcNow.AddDays(-30), OwnerId = devMarco?.Id ?? devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "IT" }
                 };
                 await context.Projects.AddRangeAsync(projects);
@@ -173,8 +173,7 @@ namespace Infrastructure._Data
                     TaskPriority Priority,
                     Project? Project,
                     DateTime DueDate,
-                    List<ApplicationUser?> Assignees,
-                    List<(string Title, bool IsCompleted)>? SubTasks
+                    List<ApplicationUser?> Assignees
                 )>
                 {
                     (
@@ -184,8 +183,7 @@ namespace Infrastructure._Data
                         TaskPriority.High,
                         proj1,
                         DateTime.UtcNow.AddDays(-10),
-                        new List<ApplicationUser?> { devJames },
-                        null
+                        new List<ApplicationUser?> { devJames }
                     ),
                     (
                         "Implement authentication middleware",
@@ -194,8 +192,7 @@ namespace Infrastructure._Data
                         TaskPriority.Urgent,
                         proj2,
                         DateTime.UtcNow.AddDays(-15),
-                        new List<ApplicationUser?> { devPriya },
-                        null
+                        new List<ApplicationUser?> { devPriya }
                     ),
                     (
                         "Build rate limiting service",
@@ -204,13 +201,7 @@ namespace Infrastructure._Data
                         TaskPriority.High,
                         proj2,
                         DateTime.UtcNow.AddDays(10),
-                        new List<ApplicationUser?> { devPriya, devDavid },
-                        new List<(string, bool)>
-                        {
-                            ("Design Redis schema", true),
-                            ("Implement token bucket algorithm", false),
-                            ("Write unit tests for sliding window", false)
-                        }
+                        new List<ApplicationUser?> { devPriya, devDavid }
                     ),
                     (
                         "Responsive mobile layout",
@@ -219,14 +210,7 @@ namespace Infrastructure._Data
                         TaskPriority.Medium,
                         proj1,
                         DateTime.UtcNow.AddDays(15),
-                        new List<ApplicationUser?> { devJames },
-                        new List<(string, bool)>
-                        {
-                            ("Audit current breakpoint behavior", true),
-                            ("Implement responsive nav drawer", true),
-                            ("Fix table overflow on mobile", false),
-                            ("Test on iOS Safari and Chrome Android", false)
-                        }
+                        new List<ApplicationUser?> { devJames }
                     ),
                     (
                         "Document upload workflow",
@@ -235,8 +219,7 @@ namespace Infrastructure._Data
                         TaskPriority.High,
                         proj3,
                         DateTime.UtcNow.AddDays(-5),
-                        new List<ApplicationUser?> { devLucas },
-                        null
+                        new List<ApplicationUser?> { devLucas }
                     ),
                     (
                         "Onboarding email triggers",
@@ -245,8 +228,7 @@ namespace Infrastructure._Data
                         TaskPriority.Medium,
                         proj3,
                         DateTime.UtcNow.AddDays(5),
-                        new List<ApplicationUser?> { devLucas },
-                        null
+                        new List<ApplicationUser?> { devLucas }
                     ),
                     (
                         "API gateway load testing",
@@ -255,8 +237,7 @@ namespace Infrastructure._Data
                         TaskPriority.Urgent,
                         proj2,
                         DateTime.UtcNow.AddDays(18),
-                        new List<ApplicationUser?> { devMarco },
-                        null
+                        new List<ApplicationUser?> { devMarco }
                     ),
                     (
                         "EU GDPR compliance audit",
@@ -265,8 +246,7 @@ namespace Infrastructure._Data
                         TaskPriority.High,
                         proj5,
                         DateTime.UtcNow.AddDays(30),
-                        new List<ApplicationUser?> { devDavid },
-                        null
+                        new List<ApplicationUser?> { devDavid }
                     ),
                     (
                         "Customer portal SSO integration",
@@ -275,13 +255,7 @@ namespace Infrastructure._Data
                         TaskPriority.Urgent,
                         proj1,
                         DateTime.UtcNow.AddDays(20),
-                        new List<ApplicationUser?> { devJames, devPriya },
-                        new List<(string, bool)>
-                        {
-                            ("Configure SAML metadata endpoints", true),
-                            ("Handle assertion consumer service", false),
-                            ("Test attribute mapping with IdP", false)
-                        }
+                        new List<ApplicationUser?> { devJames, devPriya }
                     ),
                     (
                         "Set up CI/CD pipeline",
@@ -290,8 +264,7 @@ namespace Infrastructure._Data
                         TaskPriority.High,
                         proj2,
                         DateTime.UtcNow.AddDays(-20),
-                        new List<ApplicationUser?> { devMarco },
-                        null
+                        new List<ApplicationUser?> { devMarco }
                     )
                 };
 
@@ -301,7 +274,6 @@ namespace Infrastructure._Data
 
                     var existingTask = await context.TaskItems
                         .Include(t => t.Assignees)
-                        .Include(t => t.SubTasks)
                         .AsSplitQuery()
                         .FirstOrDefaultAsync(t => t.Title == def.Title);
 
@@ -320,10 +292,7 @@ namespace Infrastructure._Data
                             Assignees = def.Assignees
                                 .Where(u => u != null)
                                 .Select(u => new TaskAssignee { UserId = u!.Id })
-                                .ToList(),
-                            SubTasks = def.SubTasks?
-                                .Select(st => new SubTask { Title = st.Title, IsCompleted = st.IsCompleted })
-                                .ToList() ?? new List<SubTask>()
+                                .ToList()
                         };
                         await context.TaskItems.AddAsync(newTask);
                     }
@@ -334,14 +303,6 @@ namespace Infrastructure._Data
                             if (!existingTask.Assignees.Any(a => a.UserId == u!.Id))
                             {
                                 existingTask.Assignees.Add(new TaskAssignee { UserId = u!.Id });
-                            }
-                        }
-
-                        if (def.SubTasks != null && !existingTask.SubTasks.Any())
-                        {
-                            foreach (var st in def.SubTasks)
-                            {
-                                existingTask.SubTasks.Add(new SubTask { Title = st.Title, IsCompleted = st.IsCompleted });
                             }
                         }
                     }
