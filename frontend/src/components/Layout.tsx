@@ -66,30 +66,92 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+const READ_NOTIFS_KEY = "hero_crm_read_notifs";
+
+function getLocalReadIds(userId?: number): Set<number> {
+  if (typeof window === "undefined" || !userId) return new Set();
+  try {
+    const raw = localStorage.getItem(`${READ_NOTIFS_KEY}_${userId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+function saveLocalReadId(userId: number | undefined, notifId: number) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    const set = getLocalReadIds(userId);
+    set.add(notifId);
+    localStorage.setItem(`${READ_NOTIFS_KEY}_${userId}`, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+function saveAllLocalReadIds(userId: number | undefined, notifIds: number[]) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    const set = getLocalReadIds(userId);
+    notifIds.forEach((id) => set.add(id));
+    localStorage.setItem(`${READ_NOTIFS_KEY}_${userId}`, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
 export default function Layout({ currentUser, currentPage, onNavigate, children, onLogout }: LayoutProps) {
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const readIds = getLocalReadIds(currentUser?.id);
+    return MOCK_NOTIFICATIONS.map((n) =>
+      readIds.has(n.id) ? { ...n, isRead: true } : n
+    );
+  });
   const [showNotifs, setShowNotifs] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    if (currentUser?.id) {
-      notificationsApi.getNotifications(currentUser.id)
-        .then((data) => { if (data && data.length > 0) setNotifications(data); })
-        .catch(() => {});
-    }
+    if (!currentUser?.id) return;
+    const readIds = getLocalReadIds(currentUser.id);
+
+    notificationsApi.getNotifications(currentUser.id)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const merged = data.map((n) =>
+            n.isRead || readIds.has(n.id) ? { ...n, isRead: true } : n
+          );
+          setNotifications(merged);
+        }
+      })
+      .catch(() => {
+        setNotifications(
+          MOCK_NOTIFICATIONS.map((n) =>
+            n.isRead || readIds.has(n.id) ? { ...n, isRead: true } : n
+          )
+        );
+      });
   }, [currentUser?.id]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  function markAllRead() {
+  async function markAllRead() {
+    saveAllLocalReadIds(currentUser?.id, notifications.map((n) => n.id));
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    if (currentUser?.id) {
+      try {
+        await notificationsApi.markAllAsRead(currentUser.id);
+      } catch (err) {
+        console.warn("Failed to mark all as read on server:", err);
+      }
+    }
   }
 
   async function markRead(id: number) {
+    saveLocalReadId(currentUser?.id, id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     try {
       await notificationsApi.markAsRead(id);
-    } catch {}
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    } catch (err) {
+      console.warn("Failed to mark notification as read on server:", err);
+    }
   }
 
 
@@ -233,43 +295,83 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
                   style={{ width: 360, background: "white", border: "1px solid var(--color-border)" }}
                 >
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14 }}>Notifications</span>
-                    <button onClick={markAllRead} className="text-xs" style={{ color: "var(--color-primary)" }}>
-                      Mark all read
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14 }}>Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-mono">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllRead}
+                        className="text-xs font-semibold cursor-pointer hover:underline"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        Mark all read
+                      </button>
+                    )}
                   </div>
                   <div className="overflow-y-auto" style={{ maxHeight: 360 }}>
-                    {notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => markRead(n.id)}
-                        className="flex gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-slate-50"
-                        style={{ background: n.isRead ? "transparent" : "#faf5ff" }}
-                      >
-                        <div
-                          className="flex items-center justify-center rounded-lg flex-shrink-0"
-                          style={{ width: 32, height: 32, background: "#f1f5f9", fontSize: 13 }}
-                        >
-                          {notifIcons[n.type]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
-                            {n.title}
-                          </div>
-                          <div className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
-                            {n.message}
-                          </div>
-                          <div className="text-xs mt-1" style={{ color: "#94a3b8", fontFamily: "var(--font-mono)" }}>
-                            {timeAgo(n.createdAt)}
-                          </div>
-                        </div>
-                        {!n.isRead && (
-                          <div className="flex-shrink-0 mt-1.5">
-                            <div className="w-2 h-2 rounded-full" style={{ background: "var(--color-primary)" }} />
-                          </div>
-                        )}
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-400">
+                        No notifications
                       </div>
-                    ))}
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (!n.isRead) {
+                              markRead(n.id);
+                            }
+                            if (n.targetType === "Project" && n.targetId) {
+                              onNavigate("project-details", n.targetId);
+                              setShowNotifs(false);
+                            } else if (n.targetType === "Task") {
+                              onNavigate("tasks");
+                              setShowNotifs(false);
+                            }
+                          }}
+                          className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                          style={{ background: n.isRead ? "transparent" : "#faf5ff" }}
+                        >
+                          <div
+                            className="flex items-center justify-center rounded-lg flex-shrink-0 mt-0.5"
+                            style={{ width: 32, height: 32, background: "#f1f5f9", fontSize: 13 }}
+                          >
+                            {notifIcons[n.type] || "✦"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium leading-snug" style={{ color: "var(--color-foreground)" }}>
+                              {n.title}
+                            </div>
+                            <div className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
+                              {n.message}
+                            </div>
+                            <div className="text-xs mt-1" style={{ color: "#94a3b8", fontFamily: "var(--font-mono)" }}>
+                              {timeAgo(n.createdAt)}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0 mt-1">
+                            {!n.isRead ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markRead(n.id);
+                                }}
+                                className="w-2.5 h-2.5 rounded-full hover:scale-125 transition-transform cursor-pointer"
+                                style={{ background: "var(--color-primary)" }}
+                                title="Mark as read"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-slate-400">Read</span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

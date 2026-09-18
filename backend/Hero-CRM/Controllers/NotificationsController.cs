@@ -86,6 +86,8 @@ namespace Hero_CRM.Controllers
 
 
         [HttpPatch("{id:int}/read")]
+        [HttpPut("{id:int}/read")]
+        [HttpPost("{id:int}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
             var notification = await _notificationRepo.GetByIdAsync(id);
@@ -112,6 +114,8 @@ namespace Hero_CRM.Controllers
         }
 
         [HttpPatch("user/{userId:int}/read-all")]
+        [HttpPut("user/{userId:int}/read-all")]
+        [HttpPost("user/{userId:int}/read-all")]
         public async Task<IActionResult> MarkAllAsRead(int userId)
         {
             var unreadNotifications = await _notificationRepo.GetQueryable()

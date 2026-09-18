@@ -398,12 +398,12 @@ export const reportsApi = {
 export const notificationsApi = {
   async getNotifications(userId: number): Promise<Notification[]> {
     const res = await apiClient.get<any[]>(`/Notifications/user/${userId}`);
-    return res.map((n) => ({
+    return (Array.isArray(res) ? res : []).map((n) => ({
       id: n.id,
       title: n.title,
       message: n.message,
       type: n.type,
-      isRead: n.isRead,
+      isRead: Boolean(n.isRead),
       targetId: n.projectId || n.taskId || 0,
       targetType: n.projectId ? "Project" : "Task",
       createdAt: n.createdAt,
@@ -411,6 +411,10 @@ export const notificationsApi = {
   },
 
   async markAsRead(id: number): Promise<any> {
-    return await apiClient.put(`/Notifications/${id}/read`);
+    return await apiClient.patch(`/Notifications/${id}/read`);
+  },
+
+  async markAllAsRead(userId: number): Promise<any> {
+    return await apiClient.patch(`/Notifications/user/${userId}/read-all`);
   },
 };

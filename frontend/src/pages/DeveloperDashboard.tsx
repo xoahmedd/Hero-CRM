@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { User, Project, Task } from "../data/mock";
 import { MOCK_PROJECTS, MOCK_TASKS } from "../data/mock";
-import { projectsApi, tasksApi } from "../api/services";
+import { projectsApi, tasksApi, notificationsApi } from "../api/services";
 import { Badge, Button, Card, KpiCard, Modal, ProgressBar, SectionHeader, Select } from "../components/ui";
 
 const REASON_CATEGORIES = [
@@ -21,6 +21,7 @@ interface Props {
 export default function DeveloperDashboard({ currentUser, onNavigateProject }: Props) {
   const [projectsList, setProjectsList] = useState<Project[]>(MOCK_PROJECTS);
   const [tasksList, setTasksList] = useState<Task[]>(MOCK_TASKS);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0);
   const [showReasonItem, setShowReasonItem] = useState<{
     type: "Project" | "Task";
     id: number;
@@ -36,6 +37,15 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
     tasksApi.getTasks()
       .then((res) => { if (res && res.length > 0) setTasksList(res); })
       .catch(() => {});
+    if (currentUser?.id) {
+      notificationsApi.getNotifications(currentUser.id)
+        .then((res) => {
+          if (Array.isArray(res)) {
+            setUnreadNotifsCount(res.filter((n) => !n.isRead).length);
+          }
+        })
+        .catch(() => {});
+    }
   }, [currentUser.id]);
 
   const assignedProjects = projectsList
@@ -117,7 +127,7 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
         <KpiCard label="Active Tasks" value={activeTasks.length} accent="#3b82f6" />
         <KpiCard label="Completed" value={completedTasks.length} accent="#22c55e" />
         <KpiCard label="Overdue Tasks" value={overdueTasks.length} accent={overdueTasks.length > 0 ? "#ef4444" : undefined} />
-        <KpiCard label="Notifications" value={3} accent="#f59e0b" />
+        <KpiCard label="Notifications" value={unreadNotifsCount} accent="#f59e0b" />
       </div>
 
       {/* Pending reason alert */}

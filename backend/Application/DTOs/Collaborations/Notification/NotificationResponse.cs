@@ -19,6 +19,10 @@ namespace Application.DTOs.Collaborations.Notification
 
         public NotificationType Type { get; set; }
 
+        public int? ProjectId { get; set; }
+
+        public int? TaskId { get; set; }
+
         public bool IsRead { get; set; }
 
         public DateTime CreatedAt { get; set; }
