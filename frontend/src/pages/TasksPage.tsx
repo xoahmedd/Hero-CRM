@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Task, User } from "../data/mock";
-import { MOCK_TASKS, MOCK_PROJECTS } from "../data/mock";
-import { tasksApi, projectsApi } from "../api/services";
+import { MOCK_TASKS, MOCK_PROJECTS, MOCK_USERS } from "../data/mock";
+import { tasksApi, projectsApi, usersApi } from "../api/services";
 import { Badge, Button, Card, EmptyState, Input, Modal, Select } from "../components/ui";
 
 const STATUSES = ["Assigned", "Review", "Completed", "Cancelled"];
@@ -21,12 +21,29 @@ interface Props {
 export default function TasksPage({ currentUser }: Props) {
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
   const [projectsList, setProjectsList] = useState(MOCK_PROJECTS);
+  const [usersList, setUsersList] = useState<User[]>(MOCK_USERS);
   const [activeTab, setActiveTab] = useState<"mine" | "all">(currentUser.role === "Admin" ? "all" : "mine");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ title: "", description: "", status: "Assigned", priority: "Medium", projectId: 1, dueDate: "" });
+  const [createForm, setCreateForm] = useState<{
+    title: string;
+    description: string;
+    status: string;
+    priority: string;
+    projectId: number;
+    dueDate: string;
+    assigneeIds: number[];
+  }>({
+    title: "",
+    description: "",
+    status: "Assigned",
+    priority: "Medium",
+    projectId: 1,
+    dueDate: "",
+    assigneeIds: [],
+  });
 
   useEffect(() => {
     tasksApi.getTasks()
@@ -35,6 +52,9 @@ export default function TasksPage({ currentUser }: Props) {
     projectsApi.getProjects()
       .then((data) => { if (Array.isArray(data)) setProjectsList(data); })
       .catch((err) => { console.warn("Using fallback projects:", err); });
+    usersApi.getUsers()
+      .then((data) => { if (Array.isArray(data) && data.length > 0) setUsersList(data); })
+      .catch((err) => { console.warn("Using fallback users:", err); });
   }, []);
 
   const isAdmin = currentUser.role === "Admin";
@@ -52,8 +72,16 @@ export default function TasksPage({ currentUser }: Props) {
     : projectsList.filter(
         (p) =>
           p.ownerId === currentUser.id ||
+          p.members?.some((m) => m.userId === currentUser.id) ||
+          p.memberIds?.includes(currentUser.id) ||
           tasks.some((t) => t.projectId === p.id && t.assignees.some((a) => a.id === currentUser.id))
       );
+
+  const developers = usersList.filter((u) => u.role === "Developer");
+  const selectedProject = availableProjects.find((p) => p.id === createForm.projectId);
+  const projectDevelopers = selectedProject?.members && selectedProject.members.length > 0
+    ? developers.filter((d) => selectedProject.members!.some((m) => m.userId === d.id))
+    : developers;
 
   const byStatus = STATUSES.reduce<Record<string, Task[]>>((acc, s) => {
     acc[s] = filtered.filter((t) => t.status === s);
@@ -82,13 +110,17 @@ export default function TasksPage({ currentUser }: Props) {
   }
 
   async function handleCreate() {
+    if (createForm.assigneeIds.length === 0) {
+      alert("Please assign at least one developer to this task.");
+      return;
+    }
     try {
       await tasksApi.createTask({
         title: createForm.title,
         description: createForm.description,
         projectId: createForm.projectId,
         createdById: currentUser.id,
-        assigneeIds: [currentUser.id],
+        assigneeIds: createForm.assigneeIds,
         dueDate: createForm.dueDate,
         priority: createForm.priority,
       });
@@ -96,6 +128,9 @@ export default function TasksPage({ currentUser }: Props) {
       setTasks(updated);
     } catch {
       const project = projectsList.find((p) => p.id === createForm.projectId);
+      const selectedAssignees = developers
+        .filter((d) => createForm.assigneeIds.includes(d.id))
+        .map((d) => ({ id: d.id, name: d.fullName, avatar: d.avatar }));
       const newTask: Task = {
         id: tasks.length + 100,
         title: createForm.title,
@@ -104,7 +139,7 @@ export default function TasksPage({ currentUser }: Props) {
         priority: createForm.priority as Task["priority"],
         projectId: createForm.projectId,
         projectName: project?.name ?? "",
-        assignees: [{ id: currentUser.id, name: currentUser.fullName, avatar: currentUser.avatar }],
+        assignees: selectedAssignees,
         createdById: currentUser.id,
         dueDate: createForm.dueDate || new Date().toISOString(),
         createdAt: new Date().toISOString(),
@@ -112,7 +147,15 @@ export default function TasksPage({ currentUser }: Props) {
       setTasks((prev) => [newTask, ...prev]);
     }
     setShowCreate(false);
-    setCreateForm({ title: "", description: "", status: "Assigned", priority: "Medium", projectId: availableProjects[0]?.id || 1, dueDate: "" });
+    setCreateForm({
+      title: "",
+      description: "",
+      status: "Assigned",
+      priority: "Medium",
+      projectId: availableProjects[0]?.id || 1,
+      dueDate: "",
+      assigneeIds: [],
+    });
   }
 
 
@@ -308,9 +351,51 @@ export default function TasksPage({ currentUser }: Props) {
                 <Input type="date" value={createForm.dueDate} onChange={(v) => setCreateForm((f) => ({ ...f, dueDate: v }))} />
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ fontFamily: "var(--font-display)" }}>
+                Assign Developers (Select one or more)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-40 overflow-y-auto">
+                {projectDevelopers.map((dev) => {
+                  const isSelected = createForm.assigneeIds.includes(dev.id);
+                  return (
+                    <label
+                      key={dev.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
+                        isSelected
+                          ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCreateForm((f) => ({ ...f, assigneeIds: [...f.assigneeIds, dev.id] }));
+                          } else {
+                            setCreateForm((f) => ({ ...f, assigneeIds: f.assigneeIds.filter((id) => id !== dev.id) }));
+                          }
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold" style={{ background: "#1a3896" }}>
+                        {dev.avatar}
+                      </span>
+                      <span className="truncate">{dev.fullName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {createForm.assigneeIds.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">Please select at least one developer for this task.</p>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={!createForm.title}>Create Task</Button>
+              <Button onClick={handleCreate} disabled={!createForm.title || createForm.assigneeIds.length === 0}>Create Task</Button>
             </div>
           </div>
         </Modal>

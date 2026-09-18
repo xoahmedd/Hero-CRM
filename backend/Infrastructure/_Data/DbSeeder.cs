@@ -114,6 +114,50 @@ namespace Infrastructure._Data
                 await context.SaveChangesAsync();
             }
 
+            // Seed Project Members
+            if (!await context.ProjectMembers.AnyAsync() && devJames != null)
+            {
+                var projApex = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Apex CRM Portal Redesign");
+                var projNova = await context.Projects.FirstOrDefaultAsync(p => p.Name == "NovaTech API Gateway");
+                var projHr = await context.Projects.FirstOrDefaultAsync(p => p.Name == "HR Onboarding Automation");
+                var projMeridian = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Meridian Compliance Dashboard");
+                var projEuro = await context.Projects.FirstOrDefaultAsync(p => p.Name == "EuroRetail Market Expansion");
+                var projQuantum = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Quantum Analytics Data Pipeline");
+                var projSky = await context.Projects.FirstOrDefaultAsync(p => p.Name == "SkyBridge Fleet Tracker");
+                var projWiki = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Internal Knowledge Base");
+
+                var memberMappings = new List<(Project? Proj, List<ApplicationUser?> Devs)>
+                {
+                    (projApex, new List<ApplicationUser?> { devJames, devPriya }),
+                    (projNova, new List<ApplicationUser?> { devPriya, devMarco, devDavid }),
+                    (projHr, new List<ApplicationUser?> { devLucas, devJames }),
+                    (projMeridian, new List<ApplicationUser?> { devJames }),
+                    (projEuro, new List<ApplicationUser?> { devDavid }),
+                    (projQuantum, new List<ApplicationUser?> { devDavid, devPriya }),
+                    (projSky, new List<ApplicationUser?> { devLucas }),
+                    (projWiki, new List<ApplicationUser?> { devMarco, devJames })
+                };
+
+                foreach (var mapping in memberMappings)
+                {
+                    if (mapping.Proj == null) continue;
+                    foreach (var dev in mapping.Devs)
+                    {
+                        if (dev == null) continue;
+                        if (!await context.ProjectMembers.AnyAsync(pm => pm.ProjectId == mapping.Proj.Id && pm.UserId == dev.Id))
+                        {
+                            context.ProjectMembers.Add(new ProjectMember
+                            {
+                                ProjectId = mapping.Proj.Id,
+                                UserId = dev.Id,
+                                JoinedAt = DateTime.UtcNow
+                            });
+                        }
+                    }
+                }
+                await context.SaveChangesAsync();
+            }
+
             // Seed Tasks
             if (adminUser != null)
             {

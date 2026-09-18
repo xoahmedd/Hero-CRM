@@ -45,6 +45,8 @@ export interface Project {
   requestedBy?: string;
   businessJustification?: string;
   rejectionReason?: string;
+  memberIds?: number[];
+  members?: { userId: number; fullName: string; email?: string; avatar?: string }[];
 }
 
 export interface Task {

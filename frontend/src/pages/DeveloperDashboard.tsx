@@ -23,7 +23,11 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
   }, [currentUser.id]);
 
   const assignedProjects = projectsList.filter(
-    (p) => p.ownerId === currentUser.id && p.status !== "Finished" && p.status !== "Submitted"
+    (p) =>
+      (p.ownerId === currentUser.id ||
+        p.members?.some((m) => m.userId === currentUser.id) ||
+        p.memberIds?.includes(currentUser.id)) &&
+      p.status !== "Finished"
   );
   const myTasks = tasksList.filter(
     (t) => t.assignees.some((a) => a.id === currentUser.id)
@@ -35,7 +39,12 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
     return due < new Date() && t.status !== "Completed" && t.status !== "Cancelled";
   });
   const pendingReasons = projectsList.filter(
-    (p) => p.status === "Overdue" && p.ownerId === currentUser.id && !p.missedDeadlineReason
+    (p) =>
+      p.status === "Overdue" &&
+      (p.ownerId === currentUser.id ||
+        p.members?.some((m) => m.userId === currentUser.id) ||
+        p.memberIds?.includes(currentUser.id)) &&
+      !p.missedDeadlineReason
   );
 
   const upcoming = [...activeTasks].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).slice(0, 6);

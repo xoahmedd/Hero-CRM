@@ -30,7 +30,7 @@ namespace Application.DTOs.Projects
         [MaxLength(100)]
         public string? RequestingDepartment { get; set; }
 
-        [Required]
-        public int OwnerId { get; set; }
+        public int? OwnerId { get; set; }
+        public List<int>? MemberIds { get; set; }
     }
 }

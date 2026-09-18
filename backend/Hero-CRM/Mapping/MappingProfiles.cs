@@ -69,12 +69,14 @@ namespace Hero_CRM.Mapping
             CreateMap<ProjectResponse, Project>();
 
             CreateMap<CreateProjectRequest, Project>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.OwnerId, opt => opt.Ignore());
 
             CreateMap<UpdateProjectRequest, Project>()
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.OwnerId, opt => opt.Ignore());
             CreateMap<ProjectMember, ProjectMemberResponse>();
             #endregion
 

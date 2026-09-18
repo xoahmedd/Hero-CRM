@@ -21,5 +21,7 @@ namespace Application.DTOs.Tasks.TaskItem
 
         [MaxLength(2000)]
         public string? MissedDeadlineReason { get; set; }
+
+        public List<int>? AssigneeIds { get; set; }
     }
 }

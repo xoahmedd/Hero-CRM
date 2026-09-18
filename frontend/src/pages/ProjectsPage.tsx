@@ -52,7 +52,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     priority: Priority;
     startDate: string;
     dueDate: string;
-    ownerId: number;
+    memberIds: number[];
     requestingDepartment: string;
   }>({
     name: "",
@@ -61,7 +61,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     priority: "Medium",
     startDate: "",
     dueDate: "",
-    ownerId: 2,
+    memberIds: [],
     requestingDepartment: "Engineering",
   });
 
@@ -78,31 +78,52 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     : projects.filter(
         (p) =>
           p.ownerId === currentUser.id ||
-          MOCK_TASKS.some(
-            (t) => t.projectId === p.id && t.assignees.some((a) => a.id === currentUser.id)
-          )
+          p.members?.some((m) => m.userId === currentUser.id) ||
+          p.memberIds?.includes(currentUser.id)
       );
 
   const filtered = assignedProjects.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.ownerName || "").toLowerCase().includes(search.toLowerCase());
+      (p.ownerName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.members || []).some((m) => m.fullName.toLowerCase().includes(search.toLowerCase()));
     const matchStatus = statusFilter === "All" || p.status === statusFilter;
     const matchPriority = priorityFilter === "All" || p.priority === priorityFilter;
     return matchSearch && matchStatus && matchPriority;
   });
 
   async function handleCreate() {
+    if (createForm.memberIds.length === 0) {
+      alert("Please select at least one developer.");
+      return;
+    }
     try {
-      await projectsApi.createProject(createForm);
+      await projectsApi.createProject({
+        name: createForm.name,
+        description: createForm.description,
+        status: createForm.status,
+        priority: createForm.priority,
+        startDate: createForm.startDate,
+        dueDate: createForm.dueDate,
+        memberIds: createForm.memberIds,
+        requestingDepartment: createForm.requestingDepartment,
+      });
       const updated = await projectsApi.getProjects();
       setProjects(updated);
     } catch {
+      const selectedDevs = usersList.filter((u) => createForm.memberIds.includes(u.id));
       const newProject: Project = {
         id: projects.length + 1,
         ...createForm,
-        ownerId: createForm.ownerId,
-        ownerName: usersList.find((u) => u.id === createForm.ownerId)?.fullName ?? "",
+        ownerId: createForm.memberIds[0] || currentUser.id,
+        ownerName: selectedDevs.map((d) => d.fullName).join(", "),
+        members: selectedDevs.map((d) => ({
+          userId: d.id,
+          fullName: d.fullName,
+          email: d.email,
+          avatar: d.avatar,
+        })),
+        memberIds: createForm.memberIds,
         customerId: 1,
         customerName: "Apex Dynamics",
         missedDeadlineReason: null,
@@ -121,7 +142,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       priority: "Medium",
       startDate: "",
       dueDate: "",
-      ownerId: 2,
+      memberIds: [],
       requestingDepartment: "Engineering",
     });
   }
@@ -250,11 +271,30 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                 className="grid grid-cols-2 gap-2 mb-4 text-xs"
                 style={{ color: "var(--color-muted-foreground)" }}
               >
-                <div>
-                  <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
-                    {project.ownerName || "—"}
+                <div className="col-span-2">
+                  <span className="block font-semibold mb-1" style={{ color: "var(--color-foreground)" }}>
+                    Assigned Developers
                   </span>
-                  Owner
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {project.members && project.members.length > 0 ? (
+                      project.members.map((m) => (
+                        <span
+                          key={m.userId}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ background: "#e0e7ff", color: "#1e3a8a" }}
+                        >
+                          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ background: "#1a3896" }}>
+                            {m.avatar}
+                          </span>
+                          {m.fullName}
+                        </span>
+                      ))
+                    ) : (
+                      <span style={{ color: "var(--color-muted-foreground)" }}>
+                        {project.ownerName || "Unassigned"}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
@@ -362,19 +402,6 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   className="block text-sm font-medium mb-1"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
-                  Lead Developer
-                </label>
-                <Select
-                  value={String(createForm.ownerId)}
-                  onChange={(v) => setCreateForm((f) => ({ ...f, ownerId: Number(v) }))}
-                  options={developers.map((u) => ({ value: String(u.id), label: u.fullName }))}
-                />
-              </div>
-              <div>
-                <label
-                  className="block text-sm font-medium mb-1"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
                   Department
                 </label>
                 <Input
@@ -382,6 +409,49 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   onChange={(v) => setCreateForm((f) => ({ ...f, requestingDepartment: v }))}
                   placeholder="e.g. Engineering, IT"
                 />
+              </div>
+              <div className="col-span-2">
+                <label
+                  className="block text-sm font-medium mb-1.5"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Assign Developers (Select one or more)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
+                  {developers.map((dev) => {
+                    const isSelected = createForm.memberIds.includes(dev.id);
+                    return (
+                      <label
+                        key={dev.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
+                          isSelected
+                            ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCreateForm((f) => ({ ...f, memberIds: [...f.memberIds, dev.id] }));
+                            } else {
+                              setCreateForm((f) => ({ ...f, memberIds: f.memberIds.filter((id) => id !== dev.id) }));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold" style={{ background: "#1a3896" }}>
+                          {dev.avatar}
+                        </span>
+                        <span className="truncate">{dev.fullName}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {createForm.memberIds.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">Please select at least one developer for this project.</p>
+                )}
               </div>
               <div>
                 <label
@@ -414,7 +484,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
               <Button variant="secondary" onClick={() => setShowCreate(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate} disabled={!createForm.name}>
+              <Button onClick={handleCreate} disabled={!createForm.name || createForm.memberIds.length === 0}>
                 Create Project
               </Button>
             </div>

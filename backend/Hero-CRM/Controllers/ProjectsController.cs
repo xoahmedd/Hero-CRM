@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure._Data;
 
 namespace Hero_CRM.Controllers
 {
@@ -26,6 +27,7 @@ namespace Hero_CRM.Controllers
         private readonly IGenericRepository<Customer> _customerRepo;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
+        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
 
         public ProjectsController(
@@ -33,12 +35,14 @@ namespace Hero_CRM.Controllers
             IGenericRepository<Customer> customerRepo,
             UserManager<ApplicationUser> userManager,
             INotificationService notificationService,
+            ApplicationDbContext context,
             IMapper mapper)
         {
             _projectRepo = projectRepo;
             _customerRepo = customerRepo;
             _userManager = userManager;
             _notificationService = notificationService;
+            _context = context;
             _mapper = mapper;
         }
 
@@ -74,6 +78,26 @@ namespace Hero_CRM.Controllers
                 response.CustomerName = customer?.Name;
             }
 
+            var members = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(pm => pm.ProjectId == project.Id)
+                .OrderBy(pm => pm.JoinedAt)
+                .ToListAsync();
+
+            foreach (var pm in members)
+            {
+                var user = await _userManager.FindByIdAsync(pm.UserId.ToString());
+                response.Members.Add(new ProjectMemberResponse
+                {
+                    ProjectId = pm.ProjectId,
+                    UserId = pm.UserId,
+                    FullName = user?.FullName ?? string.Empty,
+                    Email = user?.Email ?? string.Empty,
+                    ProfileImage = user?.ProfileImage,
+                    JoinedAt = pm.JoinedAt
+                });
+            }
+
             return response;
         }
 
@@ -92,8 +116,7 @@ namespace Hero_CRM.Controllers
                 var userId = CurrentUserId;
                 query = query.Where(p =>
                     p.OwnerId == userId ||
-                    p.Members.Any(m => m.UserId == userId) ||
-                    p.Tasks.Any(t => t.Assignees.Any(a => a.UserId == userId)));
+                    p.Members.Any(m => m.UserId == userId));
             }
 
             if (pageIndex.HasValue || pageSize.HasValue || !string.IsNullOrWhiteSpace(search) || status.HasValue)
@@ -165,8 +188,7 @@ namespace Hero_CRM.Controllers
                 var isAssigned = await _projectRepo.GetQueryable()
                     .Where(p => p.Id == id && (
                         p.OwnerId == userId ||
-                        p.Members.Any(m => m.UserId == userId) ||
-                        p.Tasks.Any(t => t.Assignees.Any(a => a.UserId == userId))))
+                        p.Members.Any(m => m.UserId == userId)))
                     .AnyAsync();
 
                 if (!isAssigned)
@@ -308,37 +330,74 @@ namespace Hero_CRM.Controllers
                 return BadRequest(ModelState);
             }
 
-            var owner = await _userManager.FindByIdAsync(request.OwnerId.ToString());
+            var memberIds = (request.MemberIds ?? new List<int>()).Distinct().ToList();
 
+            int resolvedOwnerId = (request.OwnerId.HasValue && request.OwnerId.Value > 0)
+                ? request.OwnerId.Value
+                : (memberIds.Any() ? memberIds.First() : CurrentUserId);
+
+            var owner = await _userManager.FindByIdAsync(resolvedOwnerId.ToString());
             if (owner == null)
             {
-                return BadRequest(new
+                var admin = await _userManager.FindByIdAsync(CurrentUserId.ToString());
+                if (admin != null)
                 {
-                    message = "Owner user not found."
-                });
+                    resolvedOwnerId = CurrentUserId;
+                }
+                else
+                {
+                    return BadRequest(new { message = "Valid owner user not found." });
+                }
             }
 
             if (request.CustomerId.HasValue)
             {
                 var customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-
                 if (customer == null)
                 {
-                    return BadRequest(new
-                    {
-                        message = "Customer not found."
-                    });
+                    return BadRequest(new { message = "Customer not found." });
                 }
             }
 
             var project = _mapper.Map<Project>(request);
+            project.OwnerId = resolvedOwnerId;
             project.CreatedAt = DateTime.UtcNow;
 
             await _projectRepo.AddAsync(project);
             await _projectRepo.SaveChangesAsync();
 
-            // Notify project owner
-            await _notificationService.NotifyProjectAssignmentAsync(project.OwnerId, project.Id, project.Name);
+            // Add all assigned members to ProjectMembers
+            if (memberIds.Any())
+            {
+                foreach (var devId in memberIds)
+                {
+                    var dev = await _userManager.FindByIdAsync(devId.ToString());
+                    if (dev != null)
+                    {
+                        _context.ProjectMembers.Add(new ProjectMember
+                        {
+                            ProjectId = project.Id,
+                            UserId = devId,
+                            JoinedAt = DateTime.UtcNow
+                        });
+
+                        // Notify assigned developer
+                        await _notificationService.NotifyProjectAssignmentAsync(devId, project.Id, project.Name);
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+            else if (project.OwnerId > 0 && project.OwnerId != CurrentUserId)
+            {
+                _context.ProjectMembers.Add(new ProjectMember
+                {
+                    ProjectId = project.Id,
+                    UserId = project.OwnerId,
+                    JoinedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+                await _notificationService.NotifyProjectAssignmentAsync(project.OwnerId, project.Id, project.Name);
+            }
 
             var response = await MapToResponseAsync(project);
 
@@ -368,8 +427,7 @@ namespace Hero_CRM.Controllers
                 var isAssigned = await _projectRepo.GetQueryable()
                     .Where(p => p.Id == id && (
                         p.OwnerId == userId ||
-                        p.Members.Any(m => m.UserId == userId) ||
-                        p.Tasks.Any(t => t.Assignees.Any(a => a.UserId == userId))))
+                        p.Members.Any(m => m.UserId == userId)))
                     .AnyAsync();
 
                 if (!isAssigned)
@@ -409,8 +467,7 @@ namespace Hero_CRM.Controllers
                 var userId = CurrentUserId;
                 query = query.Where(p =>
                     p.OwnerId == userId ||
-                    p.Members.Any(m => m.UserId == userId) ||
-                    p.Tasks.Any(t => t.Assignees.Any(a => a.UserId == userId)));
+                    p.Members.Any(m => m.UserId == userId));
             }
 
             var overdueProjects = await query
@@ -446,26 +503,21 @@ namespace Hero_CRM.Controllers
                 return Forbid();
             }
 
-            var owner = await _userManager.FindByIdAsync(request.OwnerId.ToString());
-
-            if (owner == null)
+            if (request.OwnerId.HasValue && request.OwnerId.Value > 0)
             {
-                return BadRequest(new
+                var owner = await _userManager.FindByIdAsync(request.OwnerId.Value.ToString());
+                if (owner == null)
                 {
-                    message = "The specified owner user does not exist."
-                });
+                    return BadRequest(new { message = "The specified owner user does not exist." });
+                }
             }
 
             if (request.CustomerId.HasValue)
             {
                 var customerExists = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-
                 if (customerExists == null)
                 {
-                    return BadRequest(new
-                    {
-                        message = "The specified customer does not exist."
-                    });
+                    return BadRequest(new { message = "The specified customer does not exist." });
                 }
             }
 
@@ -473,15 +525,17 @@ namespace Hero_CRM.Controllers
                 request.StartDate.HasValue &&
                 request.DueDate < request.StartDate)
             {
-                return BadRequest(new
-                {
-                    message = "Due date cannot be earlier than start date."
-                });
+                return BadRequest(new { message = "Due date cannot be earlier than start date." });
             }
 
             var previousOwnerId = project.OwnerId;
 
             _mapper.Map(request, project);
+            if (request.OwnerId.HasValue && request.OwnerId.Value > 0)
+            {
+                project.OwnerId = request.OwnerId.Value;
+            }
+            project.UpdatedAt = DateTime.UtcNow;
 
             _projectRepo.Update(project);
             await _projectRepo.SaveChangesAsync();
@@ -489,6 +543,41 @@ namespace Hero_CRM.Controllers
             if (previousOwnerId != project.OwnerId)
             {
                 await _notificationService.NotifyProjectAssignmentAsync(project.OwnerId, project.Id, project.Name);
+            }
+
+            // Sync ProjectMembers if MemberIds is provided
+            if (request.MemberIds != null)
+            {
+                var existingMembers = await _context.ProjectMembers
+                    .Where(pm => pm.ProjectId == id)
+                    .ToListAsync();
+
+                var targetIds = request.MemberIds.Distinct().ToHashSet();
+
+                var toRemove = existingMembers.Where(pm => !targetIds.Contains(pm.UserId)).ToList();
+                if (toRemove.Any())
+                {
+                    _context.ProjectMembers.RemoveRange(toRemove);
+                }
+
+                var existingIds = existingMembers.Select(pm => pm.UserId).ToHashSet();
+                var toAdd = targetIds.Where(uid => !existingIds.Contains(uid)).ToList();
+                foreach (var newUserId in toAdd)
+                {
+                    var user = await _userManager.FindByIdAsync(newUserId.ToString());
+                    if (user != null)
+                    {
+                        _context.ProjectMembers.Add(new ProjectMember
+                        {
+                            ProjectId = id,
+                            UserId = newUserId,
+                            JoinedAt = DateTime.UtcNow
+                        });
+                        await _notificationService.NotifyProjectAssignmentAsync(newUserId, project.Id, project.Name);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
             }
 
             return Ok(new

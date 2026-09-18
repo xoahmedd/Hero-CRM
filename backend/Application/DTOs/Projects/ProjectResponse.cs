@@ -48,5 +48,6 @@ namespace Application.DTOs.Projects
         public string? ReasonCategory { get; set; }
 
         public bool IsOverdue { get; set; }
+        public List<ProjectMemberResponse> Members { get; set; } = new();
     }
 }

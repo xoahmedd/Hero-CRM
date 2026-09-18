@@ -89,6 +89,13 @@ export const projectsApi = {
       requestedBy: p.requestedBy,
       businessJustification: p.businessJustification,
       rejectionReason: p.rejectionReason,
+      members: (p.members || []).map((m: any) => ({
+        userId: m.userId,
+        fullName: m.fullName,
+        email: m.email,
+        avatar: m.profileImage || (m.fullName ? m.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
+      })),
+      memberIds: (p.members || []).map((m: any) => m.userId),
     }));
   },
 
@@ -113,13 +120,21 @@ export const projectsApi = {
       requestedBy: p.requestedBy,
       businessJustification: p.businessJustification,
       rejectionReason: p.rejectionReason,
+      members: (p.members || []).map((m: any) => ({
+        userId: m.userId,
+        fullName: m.fullName,
+        email: m.email,
+        avatar: m.profileImage || (m.fullName ? m.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
+      })),
+      memberIds: (p.members || []).map((m: any) => m.userId),
     };
   },
 
   async createProject(data: {
     name: string;
     description: string;
-    ownerId: number;
+    ownerId?: number;
+    memberIds?: number[];
     customerId?: number;
     startDate?: string;
     dueDate?: string;
@@ -142,10 +157,22 @@ export const projectsApi = {
     return await apiClient.delete(`/Projects/${id}`);
   },
 
-
-
   async submitMissedReason(id: number, reason: string, category: string): Promise<any> {
     return await apiClient.put(`/Projects/${id}/missed-reason`, { reason, category });
+  },
+};
+
+export const projectMembersApi = {
+  async getMembers(projectId: number): Promise<any[]> {
+    return await apiClient.get<any[]>(`/Projects/${projectId}/members`);
+  },
+
+  async addMember(projectId: number, userId: number): Promise<any> {
+    return await apiClient.post(`/Projects/${projectId}/members/${userId}`);
+  },
+
+  async removeMember(projectId: number, userId: number): Promise<any> {
+    return await apiClient.delete(`/Projects/${projectId}/members/${userId}`);
   },
 };
 

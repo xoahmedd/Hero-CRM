@@ -186,10 +186,7 @@ namespace Hero_CRM.Controllers
             {
                 var userId = CurrentUserId;
                 var isAssigned = await _taskRepo.GetQueryable()
-                    .Where(t => t.Id == id && (
-                        t.Assignees.Any(a => a.UserId == userId) ||
-                        t.Project.OwnerId == userId ||
-                        t.CreatedById == userId))
+                    .Where(t => t.Id == id && t.Assignees.Any(a => a.UserId == userId))
                     .AnyAsync();
 
                 if (!isAssigned)
@@ -222,7 +219,7 @@ namespace Hero_CRM.Controllers
             var query = _taskRepo.GetQueryable()
                 .Where(t => t.ProjectId == projectId);
 
-            if (!IsAdmin && project.OwnerId != CurrentUserId)
+            if (!IsAdmin)
             {
                 var userId = CurrentUserId;
                 query = query.Where(t => t.Assignees.Any(a => a.UserId == userId));
@@ -442,6 +439,8 @@ namespace Hero_CRM.Controllers
                             UserId = userId,
                             AssignedAt = DateTime.UtcNow
                         });
+
+                        await _notificationService.NotifyTaskAssignmentAsync(userId, task.Id, task.Title, project.Name);
                     }
                 }
                 await _context.SaveChangesAsync();
@@ -476,6 +475,42 @@ namespace Hero_CRM.Controllers
 
             _taskRepo.Update(task);
             await _taskRepo.SaveChangesAsync();
+
+            if (request.AssigneeIds != null)
+            {
+                var project = await _projectRepo.GetByIdAsync(task.ProjectId);
+                var projectName = project?.Name ?? "Project";
+
+                var existingAssignees = await _context.TaskAssignees
+                    .Where(ta => ta.TaskItemId == id)
+                    .ToListAsync();
+
+                var targetIds = request.AssigneeIds.Distinct().ToHashSet();
+
+                var toRemove = existingAssignees.Where(ta => !targetIds.Contains(ta.UserId)).ToList();
+                if (toRemove.Any())
+                {
+                    _context.TaskAssignees.RemoveRange(toRemove);
+                }
+
+                var existingIds = existingAssignees.Select(ta => ta.UserId).ToHashSet();
+                var toAdd = targetIds.Where(uid => !existingIds.Contains(uid)).ToList();
+                foreach (var newUserId in toAdd)
+                {
+                    var user = await _userManager.FindByIdAsync(newUserId.ToString());
+                    if (user != null)
+                    {
+                        _context.TaskAssignees.Add(new TaskAssignee
+                        {
+                            TaskItemId = id,
+                            UserId = newUserId,
+                            AssignedAt = DateTime.UtcNow
+                        });
+                        await _notificationService.NotifyTaskAssignmentAsync(newUserId, task.Id, task.Title, projectName);
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(new
             {

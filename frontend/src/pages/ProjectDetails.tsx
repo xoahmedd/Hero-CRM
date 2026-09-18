@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Task, Project, User, Comment } from "../data/mock";
 import { MOCK_PROJECTS, MOCK_TASKS, MOCK_SUBTASKS, MOCK_COMMENTS, MOCK_USERS } from "../data/mock";
-import { projectsApi, tasksApi, subtasksApi, commentsApi } from "../api/services";
+import { projectsApi, tasksApi, subtasksApi, commentsApi, projectMembersApi, usersApi } from "../api/services";
 import { Badge, Button, Card, Modal, ProgressBar, Select } from "../components/ui";
 
 const TASK_STATUSES = ["Assigned", "Review", "Completed", "Cancelled"];
@@ -35,13 +35,37 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
   const [activeTab, setActiveTab] = useState<"tasks" | "members">("tasks");
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [selectedNewMemberId, setSelectedNewMemberId] = useState<number | null>(null);
 
   useEffect(() => {
     projectsApi.getProject(projectId)
-      .then((p) => { if (p) setProject(p); })
+      .then((p) => {
+        if (p) {
+          setProject(p);
+          if (p.members && p.members.length > 0) {
+            setProjectMembers(p.members);
+          }
+        }
+      })
       .catch(() => {});
+
+    projectMembersApi.getMembers(projectId)
+      .then((m) => {
+        if (Array.isArray(m) && m.length > 0) {
+          setProjectMembers(m);
+        }
+      })
+      .catch(() => {});
+
     tasksApi.getTasksByProject(projectId)
       .then((t) => { if (Array.isArray(t)) setTasks(t); })
+      .catch(() => {});
+
+    usersApi.getUsers()
+      .then((u) => { if (Array.isArray(u)) setAllUsers(u); })
       .catch(() => {});
   }, [projectId]);
 
@@ -59,9 +83,8 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
   if (!project) return <div className="p-8 text-center">Project not found.</div>;
 
   const isAdmin = currentUser?.role === "Admin";
-  const isOwner = currentUser && project ? project.ownerId === currentUser.id : false;
 
-  const displayTasks = isAdmin || isOwner
+  const displayTasks = isAdmin
     ? tasks
     : tasks.filter((t) => t.assignees.some((a) => a.id === currentUser?.id));
 
@@ -127,10 +150,35 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
     setNewComment("");
   }
 
+  async function handleAddMember() {
+    if (!selectedNewMemberId) return;
+    try {
+      await projectMembersApi.addMember(projectId, selectedNewMemberId);
+      const updated = await projectMembersApi.getMembers(projectId);
+      setProjectMembers(updated);
+      setShowAddMemberModal(false);
+      setSelectedNewMemberId(null);
+    } catch (err: any) {
+      alert(err?.message || "Failed to add developer to project.");
+    }
+  }
+
+  async function handleRemoveMember(userId: number) {
+    if (!confirm("Are you sure you want to remove this developer from the project?")) return;
+    try {
+      await projectMembersApi.removeMember(projectId, userId);
+      setProjectMembers((prev) => prev.filter((m) => (m.userId || m.id) !== userId));
+    } catch (err: any) {
+      alert(err?.message || "Failed to remove developer from project.");
+    }
+  }
+
+  const nonMemberDevelopers = allUsers.filter(
+    (u) => u.role === "Developer" && !projectMembers.some((pm) => (pm.userId || pm.id) === u.id)
+  );
 
   const taskSubtasks = selectedTask ? subtasks.filter((s) => s.taskId === selectedTask.id) : [];
   const taskComments = selectedTask ? comments.filter((c) => c.taskId === selectedTask.id) : [];
-  const members = MOCK_USERS.filter((u) => u.role === "Developer").slice(0, 4);
 
   const statusColors: Record<string, string> = {
     Assigned: "#dbeafe",
@@ -165,14 +213,19 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
             <p className="text-sm mb-4" style={{ color: "var(--color-muted-foreground)" }}>{project.description}</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               {[
-                { label: "Lead Developer", value: project.ownerName || "—" },
+                {
+                  label: "Assigned Developers",
+                  value: projectMembers.length > 0
+                    ? projectMembers.map((m) => m.fullName).join(", ")
+                    : (project.ownerName || "—")
+                },
                 { label: "Customer", value: project.customerName || "—" },
                 { label: "Department", value: project.requestingDepartment },
                 { label: "Due Date", value: project.dueDate ? new Date(project.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—" },
               ].map((info) => (
                 <div key={info.label}>
                   <div className="text-xs mb-0.5" style={{ color: "var(--color-muted-foreground)" }}>{info.label}</div>
-                  <div className="font-semibold" style={{ color: "var(--color-foreground)" }}>{info.value}</div>
+                  <div className="font-semibold truncate" style={{ color: "var(--color-foreground)" }}>{info.value}</div>
                 </div>
               ))}
             </div>
@@ -273,18 +326,45 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       )}
 
       {activeTab === "members" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {members.map((member) => (
-            <Card key={member.id} style={{ padding: 20, textAlign: "center" }}>
-              <div className="flex items-center justify-center mb-3">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style={{ background: "#1a3896", fontFamily: "var(--font-display)" }}>
-                  {member.avatar}
-                </div>
-              </div>
-              <div className="font-semibold text-sm" style={{ fontFamily: "var(--font-display)" }}>{member.fullName}</div>
-              <div className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>{member.role}</div>
-            </Card>
-          ))}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+              Assigned Developers ({projectMembers.length})
+            </h3>
+            {isAdmin && (
+              <Button size="sm" onClick={() => setShowAddMemberModal(true)}>
+                + Add Developer
+              </Button>
+            )}
+          </div>
+
+          {projectMembers.length === 0 ? (
+            <div className="text-sm text-center py-8" style={{ color: "var(--color-muted-foreground)" }}>
+              No developers assigned to this project yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {projectMembers.map((member) => (
+                <Card key={member.userId || member.id} style={{ padding: 20, textAlign: "center" }}>
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style={{ background: "#1a3896", fontFamily: "var(--font-display)" }}>
+                      {member.avatar || (member.fullName ? member.fullName.split(" ").map((n: string) => n[0]).join("") : "D")}
+                    </div>
+                  </div>
+                  <div className="font-semibold text-sm truncate" style={{ fontFamily: "var(--font-display)" }}>{member.fullName}</div>
+                  <div className="text-xs mt-0.5 truncate" style={{ color: "var(--color-muted-foreground)" }}>{member.email || "Developer"}</div>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleRemoveMember(member.userId || member.id)}
+                      className="mt-3 text-xs text-rose-600 hover:text-rose-800 font-medium cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -426,6 +506,35 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                 />
                 <Button size="sm" onClick={handleAddComment}>Post</Button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <Modal title="Add Developer to Project" onClose={() => setShowAddMemberModal(false)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
+                Select Developer
+              </label>
+              <Select
+                value={selectedNewMemberId ? String(selectedNewMemberId) : ""}
+                onChange={(v) => setSelectedNewMemberId(Number(v))}
+                options={[
+                  { value: "", label: "-- Choose a developer --" },
+                  ...nonMemberDevelopers.map((d) => ({ value: String(d.id), label: `${d.fullName} (${d.email})` })),
+                ]}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setShowAddMemberModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddMember} disabled={!selectedNewMemberId}>
+                Add Developer
+              </Button>
             </div>
           </div>
         </Modal>
