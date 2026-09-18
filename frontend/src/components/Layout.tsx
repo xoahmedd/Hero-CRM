@@ -10,7 +10,6 @@ type Page =
   | "projects"
   | "project-details"
   | "tasks"
-  | "reports"
   | "users";
 
 interface LayoutProps {
@@ -34,12 +33,6 @@ const navItems = [
     items: [
       { id: "projects", label: "Projects", icon: "▦", roles: ["Admin", "Developer"] },
       { id: "tasks", label: "Tasks", icon: "✦", roles: ["Admin", "Developer"] },
-    ],
-  },
-  {
-    label: "Insights",
-    items: [
-      { id: "reports", label: "Reports", icon: "▩", roles: ["Admin"] },
     ],
   },
   {
