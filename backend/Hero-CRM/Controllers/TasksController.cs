@@ -186,7 +186,9 @@ namespace Hero_CRM.Controllers
 
                 var totalCount = await query.CountAsync();
                 var pagedTasks = await query
-                    .OrderByDescending(t => t.CreatedAt)
+                    .OrderBy(t => t.DueDate == null)
+                    .ThenBy(t => t.DueDate)
+                    .ThenByDescending(t => t.CreatedAt)
                     .Skip(((pageIndex ?? 1) - 1) * (pageSize ?? 20))
                     .Take(pageSize ?? 20)
                     .ToListAsync();
@@ -205,7 +207,9 @@ namespace Hero_CRM.Controllers
             }
 
             var tasks = await query
-                .OrderByDescending(t => t.CreatedAt)
+                .OrderBy(t => t.DueDate == null)
+                .ThenBy(t => t.DueDate)
+                .ThenByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
             var list = new List<TaskResponse>();
@@ -281,7 +285,9 @@ namespace Hero_CRM.Controllers
             {
                 var totalCount = await query.CountAsync();
                 var pagedTasks = await query
-                    .OrderByDescending(t => t.CreatedAt)
+                    .OrderBy(t => t.DueDate == null)
+                    .ThenBy(t => t.DueDate)
+                    .ThenByDescending(t => t.CreatedAt)
                     .Skip(((pageIndex ?? 1) - 1) * (pageSize ?? 20))
                     .Take(pageSize ?? 20)
                     .ToListAsync();
@@ -302,7 +308,9 @@ namespace Hero_CRM.Controllers
             }
 
             var projectTasks = await query
-                .OrderByDescending(t => t.CreatedAt)
+                .OrderBy(t => t.DueDate == null)
+                .ThenBy(t => t.DueDate)
+                .ThenByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
             var list = new List<TaskResponse>();
@@ -344,7 +352,7 @@ namespace Hero_CRM.Controllers
                     pageIndex ?? 1,
                     pageSize ?? 20,
                     predicate: t => t.CreatedById == userId,
-                    orderBy: q => q.OrderByDescending(t => t.CreatedAt));
+                    orderBy: q => q.OrderBy(t => t.DueDate == null).ThenBy(t => t.DueDate).ThenByDescending(t => t.CreatedAt));
 
                 var responses = new List<TaskResponse>();
                 foreach (var t in pagedTasks.Data)
@@ -363,7 +371,9 @@ namespace Hero_CRM.Controllers
 
             var creatorTasks = await _taskRepo.GetQueryable()
                 .Where(t => t.CreatedById == userId)
-                .OrderByDescending(t => t.CreatedAt)
+                .OrderBy(t => t.DueDate == null)
+                .ThenBy(t => t.DueDate)
+                .ThenByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
             var list = new List<TaskResponse>();

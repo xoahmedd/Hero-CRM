@@ -124,15 +124,22 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
           p.memberIds?.includes(currentUser.id)
       );
 
-  const filtered = assignedProjects.filter((p) => {
-    const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.ownerName || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.members || []).some((m) => m.fullName.toLowerCase().includes(search.toLowerCase()));
-    const matchStatus = statusFilter === "All" || p.status === statusFilter;
-    const matchPriority = priorityFilter === "All" || p.priority === priorityFilter;
-    return matchSearch && matchStatus && matchPriority;
-  });
+  const filtered = assignedProjects
+    .filter((p) => {
+      const matchSearch =
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.ownerName || "").toLowerCase().includes(search.toLowerCase()) ||
+        (p.members || []).some((m) => m.fullName.toLowerCase().includes(search.toLowerCase()));
+      const matchStatus = statusFilter === "All" || p.status === statusFilter;
+      const matchPriority = priorityFilter === "All" || p.priority === priorityFilter;
+      return matchSearch && matchStatus && matchPriority;
+    })
+    .sort((a, b) => {
+      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+      return b.id - a.id;
+    });
 
   async function handleCreate() {
     if (createForm.memberIds.length === 0) {

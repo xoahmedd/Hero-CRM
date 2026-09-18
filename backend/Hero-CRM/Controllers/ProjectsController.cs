@@ -174,7 +174,9 @@ namespace Hero_CRM.Controllers
 
                 var totalCount = await query.CountAsync();
                 var pagedProjects = await query
-                    .OrderByDescending(p => p.CreatedAt)
+                    .OrderBy(p => p.DueDate == null)
+                    .ThenBy(p => p.DueDate)
+                    .ThenByDescending(p => p.CreatedAt)
                     .Skip(((pageIndex ?? 1) - 1) * (pageSize ?? 20))
                     .Take(pageSize ?? 20)
                     .ToListAsync();
@@ -193,7 +195,9 @@ namespace Hero_CRM.Controllers
             }
 
             var projects = await query
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderBy(p => p.DueDate == null)
+                .ThenBy(p => p.DueDate)
+                .ThenByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
             var list = new List<ProjectResponse>();
@@ -269,7 +273,7 @@ namespace Hero_CRM.Controllers
                     pageIndex ?? 1,
                     pageSize ?? 20,
                     predicate: p => p.OwnerId == ownerId,
-                    orderBy: q => q.OrderByDescending(p => p.CreatedAt));
+                    orderBy: q => q.OrderBy(p => p.DueDate == null).ThenBy(p => p.DueDate).ThenByDescending(p => p.CreatedAt));
 
                 var responses = new List<ProjectResponse>();
                 foreach (var p in pagedProjects.Data)
@@ -288,7 +292,9 @@ namespace Hero_CRM.Controllers
 
             var ownerProjects = await _projectRepo.GetQueryable()
                 .Where(p => p.OwnerId == ownerId)
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderBy(p => p.DueDate == null)
+                .ThenBy(p => p.DueDate)
+                .ThenByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
             var list = new List<ProjectResponse>();

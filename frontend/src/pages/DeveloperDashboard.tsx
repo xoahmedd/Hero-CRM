@@ -38,14 +38,21 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
       .catch(() => {});
   }, [currentUser.id]);
 
-  const assignedProjects = projectsList.filter(
-    (p) =>
-      (p.ownerId === currentUser.id ||
-        p.members?.some((m) => m.userId === currentUser.id) ||
-        p.memberIds?.includes(currentUser.id)) &&
-      p.status !== "Finished" &&
-      p.status !== "Cancelled"
-  );
+  const assignedProjects = projectsList
+    .filter(
+      (p) =>
+        (p.ownerId === currentUser.id ||
+          p.members?.some((m) => m.userId === currentUser.id) ||
+          p.memberIds?.includes(currentUser.id)) &&
+        p.status !== "Finished" &&
+        p.status !== "Cancelled"
+    )
+    .sort((a, b) => {
+      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+      return b.id - a.id;
+    });
   const myTasks = tasksList.filter(
     (t) => t.assignees.some((a) => a.id === currentUser.id)
   );
@@ -74,7 +81,14 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
   );
   const totalPendingReasons = pendingProjectReasons.length + pendingTaskReasons.length;
 
-  const upcoming = [...activeTasks].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).slice(0, 6);
+  const upcoming = [...activeTasks]
+    .sort((a, b) => {
+      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+      return b.id - a.id;
+    })
+    .slice(0, 6);
 
   async function handleSubmitReason() {
     if (!showReasonItem) return;

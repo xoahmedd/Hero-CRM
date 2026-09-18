@@ -300,6 +300,13 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
     ? safeTasks
     : safeTasks.filter((t) => (t.assignees || []).some((a) => a && a.id === currentUser?.id));
 
+  const sortedDisplayTasks = [...displayTasks].sort((a, b) => {
+    const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+    const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+    if (timeA !== timeB) return timeA - timeB;
+    return b.id - a.id;
+  });
+
   const tasksByStatus = TASK_STATUSES.reduce<Record<string, Task[]>>((acc, s) => {
     let items = displayTasks.filter((t) => t && t.status === s);
     if (s === "Completed") {
@@ -307,6 +314,13 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
         const timeA = a.completedAt ? new Date(a.completedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
         const timeB = b.completedAt ? new Date(b.completedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
         return timeB - timeA;
+      });
+    } else {
+      items = [...items].sort((a, b) => {
+        const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        if (timeA !== timeB) return timeA - timeB;
+        return b.id - a.id;
       });
     }
     acc[s] = items;
@@ -914,7 +928,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       {activeTab === "tasks" && view === "list" && (
         <Card>
           <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
-            {displayTasks.map((task) => {
+            {sortedDisplayTasks.map((task) => {
               const isTaskOverdue = checkIsOverdue(task);
               return (
                 <button

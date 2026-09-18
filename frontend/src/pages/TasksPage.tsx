@@ -171,7 +171,7 @@ export default function TasksPage({ currentUser }: Props) {
     return matchSearch && matchPriority;
   });
 
-  const availableProjects = isAdmin
+  const availableProjects = (isAdmin
     ? projectsList
     : projectsList.filter(
         (p) =>
@@ -179,7 +179,13 @@ export default function TasksPage({ currentUser }: Props) {
           p.members?.some((m) => m.userId === currentUser.id) ||
           p.memberIds?.includes(currentUser.id) ||
           tasks.some((t) => t.projectId === p.id && t.assignees.some((a) => a.id === currentUser.id))
-      );
+      )
+  ).sort((a, b) => {
+    const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+    const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+    if (timeA !== timeB) return timeA - timeB;
+    return b.id - a.id;
+  });
 
   const createAvailableProjects = availableProjects.filter((p) => p.status !== "Cancelled");
   const developers = usersList.filter((u) => u.role === "Developer" || u.role === "Admin");
@@ -200,6 +206,13 @@ export default function TasksPage({ currentUser }: Props) {
         const timeA = a.completedAt ? new Date(a.completedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
         const timeB = b.completedAt ? new Date(b.completedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
         return timeB - timeA;
+      });
+    } else {
+      items = [...items].sort((a, b) => {
+        const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        if (timeA !== timeB) return timeA - timeB;
+        return b.id - a.id;
       });
     }
     acc[s] = items;
