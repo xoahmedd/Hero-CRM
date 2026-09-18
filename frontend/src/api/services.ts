@@ -5,8 +5,6 @@ import type {
   Task,
   SubTask,
   Comment,
-  Customer,
-  Team,
   Notification,
   Role,
 } from "../data/mock";
@@ -90,8 +88,6 @@ export const projectsApi = {
         dueDate: p.dueDate ? p.dueDate.split("T")[0] : "",
         ownerId: p.ownerId,
         ownerName: p.ownerName || "Unassigned",
-        customerId: p.customerId || 0,
-        customerName: p.customerName || "N/A",
         requestingDepartment: p.requestingDepartment || "",
         missedDeadlineReason: p.missedDeadlineReason || null,
         reasonCategory: p.reasonCategory || null,
@@ -124,8 +120,6 @@ export const projectsApi = {
       dueDate: p.dueDate ? p.dueDate.split("T")[0] : "",
       ownerId: p.ownerId,
       ownerName: p.ownerName || "Unassigned",
-      customerId: p.customerId || 0,
-      customerName: p.customerName || "N/A",
       requestingDepartment: p.requestingDepartment || "",
       missedDeadlineReason: p.missedDeadlineReason || null,
       reasonCategory: p.reasonCategory || null,
@@ -149,7 +143,6 @@ export const projectsApi = {
     description: string;
     ownerId?: number;
     memberIds?: number[];
-    customerId?: number;
     startDate?: string;
     dueDate?: string;
     priority?: string;
@@ -351,38 +344,7 @@ export const commentsApi = {
   },
 };
 
-// Customers API
-export const customersApi = {
-  async getCustomers(): Promise<Customer[]> {
-    const res = await apiClient.get<any[]>("/Customers");
-    return res.map((c) => ({
-      id: c.id,
-      name: c.name,
-      company: c.company || "",
-      email: c.email || "",
-      phone: c.phone || "",
-      address: c.address || "",
-      status: c.status,
-      notes: c.notes || "",
-    }));
-  },
 
-  async createCustomer(data: Omit<Customer, "id">): Promise<Customer> {
-    const payload = {
-      ...data,
-      email: data.email?.trim() ? data.email : null,
-    };
-    return await apiClient.post("/Customers", payload);
-  },
-
-  async updateCustomer(id: number, data: Partial<Customer>): Promise<any> {
-    return await apiClient.put(`/Customers/${id}`, data);
-  },
-
-  async deleteCustomer(id: number): Promise<any> {
-    return await apiClient.delete(`/Customers/${id}`);
-  },
-};
 
 // Users API
 export const usersApi = {
@@ -408,30 +370,7 @@ export const usersApi = {
   },
 };
 
-// Teams API
-export const teamsApi = {
-  async getTeams(): Promise<Team[]> {
-    const res = await apiClient.get<any[]>("/Teams");
-    return res.map((t) => ({
-      id: t.id,
-      name: t.name,
-      description: t.description || "",
-      memberIds: (t.members || []).map((m: any) => m.userId || m.id),
-    }));
-  },
 
-  async createTeam(name: string, description: string, memberIds: number[]): Promise<any> {
-    return await apiClient.post("/Teams", { name, description, memberIds });
-  },
-
-  async addTeamMember(teamId: number, userId: number): Promise<any> {
-    return await apiClient.post(`/Teams/${teamId}/members/${userId}`);
-  },
-
-  async removeTeamMember(teamId: number, userId: number): Promise<any> {
-    return await apiClient.delete(`/Teams/${teamId}/members/${userId}`);
-  },
-};
 
 // Dashboard API
 export const dashboardApi = {

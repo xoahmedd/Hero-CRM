@@ -41,7 +41,7 @@ export default function ReportsPage() {
 
       {/* Executive Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Total Customers" value={d.summary.totalCustomers} />
+        <KpiCard label="Active Users" value={d.summary.totalUsers} />
         <KpiCard label="Total Projects" value={d.summary.totalProjects} />
         <KpiCard label="Active Projects" value={d.summary.activeProjects} accent="#3b82f6" />
         <KpiCard label="Task Completion" value={`${d.summary.taskCompletionRate}%`} accent="#22c55e" sub={`${d.summary.completedTasks}/${d.summary.totalTasks} tasks`} />
@@ -106,7 +106,7 @@ export default function ReportsPage() {
         </Card>
 
         {/* Task Priority Bar */}
-        <Card style={{ padding: 24 }}>
+        <Card className="md:col-span-2" style={{ padding: 24 }}>
           <h3 className="font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>Task Priority Breakdown</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={d.taskPriority} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
@@ -115,20 +115,6 @@ export default function ReportsPage() {
               <YAxis tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }} />
               <Tooltip />
               <Bar dataKey="count" fill="#1a3896" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Customer Status Bar */}
-        <Card style={{ padding: 24 }}>
-          <h3 className="font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>Customer Status Breakdown</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={d.customerStatus} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }} />
-              <YAxis tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#4a8220" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -146,7 +132,6 @@ export default function ReportsPage() {
             <Legend />
             <Line type="monotone" dataKey="tasksCreated" stroke="#1a3896" strokeWidth={2} dot={{ r: 3 }} name="Tasks Created" />
             <Line type="monotone" dataKey="projectsCreated" stroke="#4a8220" strokeWidth={2} dot={{ r: 3 }} name="Projects Created" />
-            <Line type="monotone" dataKey="customersCreated" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="Customers Created" />
           </LineChart>
         </ResponsiveContainer>
       </Card>

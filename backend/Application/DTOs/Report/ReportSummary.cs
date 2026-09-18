@@ -2,7 +2,6 @@ namespace Application.DTOs.Report
 {
     public class ReportSummary
     {
-        public int TotalCustomers { get; set; }
         public int TotalProjects { get; set; }
         public int ActiveProjects { get; set; }
         public int TotalTasks { get; set; }

@@ -38,10 +38,9 @@ namespace Hero_CRM.Controllers
             var currentMonth = new DateTime(now.Year, now.Month, 1);
             var rangeStart = currentMonth.AddMonths(-(months - 1));
 
-            var totalCustomers = await _context.Customers.CountAsync();
             var totalProjects = await _context.Projects.CountAsync();
             var activeProjects = await _context.Projects
-                .CountAsync(p => p.Status == ProjectStatus.Working);
+                .CountAsync(p => p.Status == ProjectStatus.Working || p.Status == ProjectStatus.InProgress);
 
             var totalTasks = await _context.TaskItems.CountAsync();
             var completedTasks = await _context.TaskItems
@@ -93,17 +92,6 @@ namespace Hero_CRM.Controllers
                 .OrderByDescending(item => item.Count)
                 .ToListAsync();
 
-            var customerStatus = await _context.Customers
-                .AsNoTracking()
-                .GroupBy(c => c.Status)
-                .Select(group => new ReportBreakdownItem
-                {
-                    Name = group.Key.ToString(),
-                    Count = group.Count()
-                })
-                .OrderByDescending(item => item.Count)
-                .ToListAsync();
-
             var taskTrendRows = await _context.TaskItems
                 .AsNoTracking()
                 .Where(t => t.CreatedAt >= rangeStart)
@@ -136,29 +124,10 @@ namespace Hero_CRM.Controllers
                 })
                 .ToListAsync();
 
-            var customerTrendRows = await _context.Customers
-                .AsNoTracking()
-                .Where(c => c.CreatedAt >= rangeStart)
-                .GroupBy(c => new
-                {
-                    c.CreatedAt.Year,
-                    c.CreatedAt.Month
-                })
-                .Select(group => new
-                {
-                    group.Key.Year,
-                    group.Key.Month,
-                    Count = group.Count()
-                })
-                .ToListAsync();
-
             var taskTrend = taskTrendRows.ToDictionary(
                 row => (row.Year, row.Month),
                 row => row.Count);
             var projectTrend = projectTrendRows.ToDictionary(
-                row => (row.Year, row.Month),
-                row => row.Count);
-            var customerTrend = customerTrendRows.ToDictionary(
                 row => (row.Year, row.Month),
                 row => row.Count);
 
@@ -174,8 +143,7 @@ namespace Hero_CRM.Controllers
                     Period = month.ToString("yyyy-MM"),
                     Label = month.ToString("MMM yyyy"),
                     TasksCreated = taskTrend.GetValueOrDefault(key),
-                    ProjectsCreated = projectTrend.GetValueOrDefault(key),
-                    CustomersCreated = customerTrend.GetValueOrDefault(key)
+                    ProjectsCreated = projectTrend.GetValueOrDefault(key)
                 });
             }
 
@@ -212,7 +180,6 @@ namespace Hero_CRM.Controllers
                 Months = months,
                 Summary = new ReportSummary
                 {
-                    TotalCustomers = totalCustomers,
                     TotalProjects = totalProjects,
                     ActiveProjects = activeProjects,
                     TotalTasks = totalTasks,
@@ -227,7 +194,6 @@ namespace Hero_CRM.Controllers
                 TaskStatus = taskStatus,
                 TaskPriority = taskPriority,
                 ProjectStatus = projectStatus,
-                CustomerStatus = customerStatus,
                 ActivityTrend = activityTrend,
                 ProjectPerformance = projectPerformance
             });

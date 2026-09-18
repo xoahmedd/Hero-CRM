@@ -1,4 +1,3 @@
-using Domain.Entities.Customers;
 using Domain.Entities.Tasks;
 using Domain.Enums;
 
@@ -13,7 +12,6 @@ namespace Domain.Entities.Projects
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
         public int OwnerId { get; set; }
-        public int? CustomerId { get; set; }
         public string? RequestingDepartment { get; set; }
         public string? RequestedBy { get; set; }
         public string? BusinessJustification { get; set; }
@@ -23,8 +21,6 @@ namespace Domain.Entities.Projects
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
-
-        public Customer? Customer { get; set; }
         public ICollection<ProjectMember> Members { get; set; }
             = new List<ProjectMember>();
         public ICollection<TaskItem> Tasks { get; set; }

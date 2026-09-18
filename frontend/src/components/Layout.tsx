@@ -10,10 +10,8 @@ type Page =
   | "projects"
   | "project-details"
   | "tasks"
-  | "customers"
   | "reports"
-  | "users"
-  | "teams";
+  | "users";
 
 interface LayoutProps {
   currentUser: User;
@@ -36,7 +34,6 @@ const navItems = [
     items: [
       { id: "projects", label: "Projects", icon: "▦", roles: ["Admin", "Developer"] },
       { id: "tasks", label: "Tasks", icon: "✦", roles: ["Admin", "Developer"] },
-      { id: "customers", label: "Customers", icon: "◑", roles: ["Admin"] },
     ],
   },
   {
@@ -49,7 +46,6 @@ const navItems = [
     label: "Administration",
     items: [
       { id: "users", label: "Users", icon: "◔", roles: ["Admin"] },
-      { id: "teams", label: "Teams", icon: "◫", roles: ["Admin"] },
     ],
   },
 ];

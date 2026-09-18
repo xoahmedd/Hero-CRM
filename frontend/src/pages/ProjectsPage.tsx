@@ -149,8 +149,6 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
           avatar: d.avatar,
         })),
         memberIds: createForm.memberIds,
-        customerId: 1,
-        customerName: "Apex Dynamics",
         missedDeadlineReason: null,
         reasonCategory: null,
         progress: 0,
@@ -423,9 +421,9 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   </div>
                   <div>
                     <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>
-                      {project.customerName || "—"}
+                      {project.requestingDepartment || "—"}
                     </span>
-                    Customer
+                    Department
                   </div>
                   <div>
                     <span className="block font-semibold" style={{ color: "var(--color-foreground)" }}>

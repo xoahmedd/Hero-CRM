@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Domain.Enums;
 
 namespace Application.DTOs.Projects
@@ -24,8 +21,6 @@ namespace Application.DTOs.Projects
         public DateTime? StartDate { get; set; }
 
         public DateTime? DueDate { get; set; }
-
-        public int? CustomerId { get; set; }
 
         [MaxLength(100)]
         public string? RequestingDepartment { get; set; }

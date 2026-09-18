@@ -113,7 +113,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             built for execution.
           </h1>
           <p style={{ color: "#5a7aaa", fontSize: 16, lineHeight: 1.8, marginBottom: 8, paddingLeft: 10 }}>
-            Unified workspace for Hero teams — track projects, manage customers,
+            Unified workspace for Hero — track projects, manage tasks,
             monitor progress, and stay aligned.
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           {[
             { value: "8+", label: "Active Projects" },
             { value: "6", label: "Developers" },
-            { value: "7", label: "Customers" },
+            { value: "5+", label: "Departments" },
           ].map((stat) => (
             <div
               key={stat.label}

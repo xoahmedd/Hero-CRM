@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Domain.Enums;
 
 namespace Application.DTOs.Projects
@@ -30,10 +27,6 @@ namespace Application.DTOs.Projects
         public int OwnerId { get; set; }
 
         public string? OwnerName { get; set; }
-
-        public int? CustomerId { get; set; }
-
-        public string? CustomerName { get; set; }
 
         public string? RequestingDepartment { get; set; }
 

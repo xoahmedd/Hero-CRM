@@ -8,10 +8,8 @@ import DeveloperDashboard from "./pages/DeveloperDashboard";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetails from "./pages/ProjectDetails";
 import TasksPage from "./pages/TasksPage";
-import CustomersPage from "./pages/CustomersPage";
 import ReportsPage from "./pages/ReportsPage";
 import UsersPage from "./pages/UsersPage";
-import TeamsPage from "./pages/TeamsPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 type Page =
@@ -20,17 +18,13 @@ type Page =
   | "projects"
   | "project-details"
   | "tasks"
-  | "customers"
   | "reports"
-  | "users"
-  | "teams";
+  | "users";
 
 const ADMIN_ONLY_PAGES: Page[] = [
   "dashboard-admin",
-  "customers",
   "reports",
   "users",
-  "teams",
 ];
 
 export default function App() {
@@ -119,14 +113,10 @@ export default function App() {
         ) : null;
       case "tasks":
         return <TasksPage currentUser={currentUser!} />;
-      case "customers":
-        return <CustomersPage />;
       case "reports":
         return <ReportsPage />;
       case "users":
         return <UsersPage />;
-      case "teams":
-        return <TeamsPage />;
       default:
         return null;
     }

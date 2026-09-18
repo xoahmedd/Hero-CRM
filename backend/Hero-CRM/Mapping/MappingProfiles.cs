@@ -2,10 +2,8 @@ using AutoMapper;
 
 // Entities
 using Domain.Entities.Collaborations;
-using Domain.Entities.Customers;
 using Domain.Entities.Projects;
 using Domain.Entities.Tasks;
-using Domain.Entities.Teams;
 using Domain.Enums;
 
 // DTOs
@@ -13,12 +11,10 @@ using Application.DTOs.Collaborations.Activity;
 using Application.DTOs.Collaborations.Attachment;
 using Application.DTOs.Collaborations.Comment;
 using Application.DTOs.Collaborations.Notification;
-using Application.DTOs.Customer;
 using Application.DTOs.Projects;
 using Application.DTOs.Tasks.SubTask;
 using Application.DTOs.Tasks.Tag;
 using Application.DTOs.Tasks.TaskItem;
-using Application.DTOs.Teams;
 
 namespace Hero_CRM.Mapping
 {
@@ -48,19 +44,6 @@ namespace Hero_CRM.Mapping
 
             CreateMap<Notification, NotificationResponse>().ReverseMap();
             CreateMap<CreateNotificationRequest, Notification>();
-            #endregion
-
-            #region Customer Mappings
-            CreateMap<Customer, CustomerResponse>().ReverseMap();
-            CreateMap<CreateCustomerRequest, Customer>()
-                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email != null ? src.Email.ToLower() : null))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
-
-            CreateMap<UpdateCustomerRequest, Customer>()
-                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email != null ? src.Email.ToLower() : null))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             #endregion
 
             #region Project Mappings
@@ -115,18 +98,6 @@ namespace Hero_CRM.Mapping
                 .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Status, opt => opt.Condition(src => src.Status.HasValue));
-            #endregion
-
-            #region Team Mappings
-            CreateMap<Team, TeamResponse>().ReverseMap();
-            CreateMap<CreateTeamRequest, Team>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
-
-            CreateMap<UpdateTeamRequest, Team>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
-            CreateMap<TeamMember, TeamMemberResponse>();
             #endregion
         }
     }

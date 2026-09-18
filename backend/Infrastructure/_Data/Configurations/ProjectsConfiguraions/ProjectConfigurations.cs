@@ -1,12 +1,6 @@
 using Domain.Entities.Projects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure._Data.Configurations.ProjectsConfiguraions
 {
@@ -14,13 +8,6 @@ namespace Infrastructure._Data.Configurations.ProjectsConfiguraions
     {
         public void Configure(EntityTypeBuilder<Project> builder)
         {
-            builder.HasOne(p => p.Customer)
-                   .WithMany(c => c.Projects)
-                   .HasForeignKey(p => p.CustomerId)
-                   .OnDelete(DeleteBehavior.SetNull);
-
-            builder.HasIndex(p => p.CustomerId);
-
             builder.HasIndex(p => p.OwnerId);
 
             builder.Property(p => p.Status)

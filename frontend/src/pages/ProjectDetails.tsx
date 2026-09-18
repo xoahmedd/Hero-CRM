@@ -684,7 +684,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               )}
             </div>
             <p className="text-sm mb-4" style={{ color: "var(--color-muted-foreground)" }}>{project.description}</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               {[
                 {
                   label: "Assigned Developers",
@@ -692,7 +692,6 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                     ? projectMembers.filter(Boolean).map((m) => m?.fullName || m?.name || "Developer").join(", ")
                     : (project.ownerName || "—"),
                 },
-                { label: "Customer", value: project.customerName || "—" },
                 { label: "Department", value: project.requestingDepartment || "—" },
                 { label: "Due Date", value: safeFormatDate(project.dueDate) },
               ].map((info) => (
@@ -905,8 +904,8 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                       {member?.avatar || (typeof member?.fullName === "string" && member.fullName ? member.fullName.split(" ").map((n: string) => n[0]).join("") : "U")}
                     </div>
                   </div>
-                  <div className="font-semibold text-sm truncate" style={{ fontFamily: "var(--font-display)" }}>{member?.fullName || member?.name || "Team Member"}</div>
-                  <div className="text-xs mt-0.5 truncate" style={{ color: "var(--color-muted-foreground)" }}>{member?.email || "Team Member"}</div>
+                  <div className="font-semibold text-sm truncate" style={{ fontFamily: "var(--font-display)" }}>{member?.fullName || member?.name || "User"}</div>
+                  <div className="text-xs mt-0.5 truncate" style={{ color: "var(--color-muted-foreground)" }}>{member?.email || ""}</div>
                   {isAdmin && (
                     <button
                       onClick={() => handleRemoveMember(member?.userId || member?.id)}
@@ -1223,7 +1222,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                 value={selectedNewMemberId ? String(selectedNewMemberId) : ""}
                 onChange={(v) => setSelectedNewMemberId(Number(v))}
                 options={[
-                  { value: "", label: "-- Choose a team member --" },
+                  { value: "", label: "-- Choose a developer / admin --" },
                   ...nonMemberDevelopers.map((d) => ({ value: String(d.id), label: `${d.fullName} (${d.role}) - ${d.email}` })),
                 ]}
               />

@@ -6,7 +6,6 @@ using Application.DTOs.Projects;
 using Application.Repos_Interfaces;
 using Application.Services_Interfaces;
 using AutoMapper;
-using Domain.Entities.Customers;
 using Domain.Entities.Identity;
 using Domain.Entities.Projects;
 using Domain.Enums;
@@ -25,7 +24,6 @@ namespace Hero_CRM.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly IGenericRepository<Project> _projectRepo;
-        private readonly IGenericRepository<Customer> _customerRepo;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
         private readonly ApplicationDbContext _context;
@@ -33,14 +31,12 @@ namespace Hero_CRM.Controllers
 
         public ProjectsController(
             IGenericRepository<Project> projectRepo,
-            IGenericRepository<Customer> customerRepo,
             UserManager<ApplicationUser> userManager,
             INotificationService notificationService,
             ApplicationDbContext context,
             IMapper mapper)
         {
             _projectRepo = projectRepo;
-            _customerRepo = customerRepo;
             _userManager = userManager;
             _notificationService = notificationService;
             _context = context;
@@ -72,12 +68,6 @@ namespace Hero_CRM.Controllers
 
             var owner = await _userManager.FindByIdAsync(project.OwnerId.ToString());
             response.OwnerName = owner?.FullName;
-
-            if (project.CustomerId.HasValue)
-            {
-                var customer = await _customerRepo.GetByIdAsync(project.CustomerId.Value);
-                response.CustomerName = customer?.Name;
-            }
 
             var members = await _context.ProjectMembers
                 .AsNoTracking()
@@ -249,61 +239,7 @@ namespace Hero_CRM.Controllers
             return Ok(response);
         }
 
-        // GET: api/Projects/customer/1
-        [HttpGet("customer/{customerId:int}")]
-        public async Task<IActionResult> GetProjectsByCustomer(
-            int customerId,
-            [FromQuery] int? pageIndex = null,
-            [FromQuery] int? pageSize = null)
-        {
-            var customer = await _customerRepo.GetByIdAsync(customerId);
 
-            if (customer == null)
-            {
-                return NotFound(new
-                {
-                    message = "Customer not found."
-                });
-            }
-
-            if (pageIndex.HasValue || pageSize.HasValue)
-            {
-                var pagedProjects = await _projectRepo.GetPagedAsync(
-                    pageIndex ?? 1,
-                    pageSize ?? 20,
-                    predicate: p => p.CustomerId == customerId,
-                    orderBy: q => q.OrderByDescending(p => p.CreatedAt));
-
-                var responses = new List<ProjectResponse>();
-                foreach (var p in pagedProjects.Data)
-                {
-                    var resp = await MapToResponseAsync(p);
-                    resp.CustomerName = customer.Name;
-                    responses.Add(resp);
-                }
-
-                return Ok(new Pagination<ProjectResponse>(
-                    pagedProjects.PageIndex,
-                    pagedProjects.PageSize,
-                    pagedProjects.Count,
-                    responses));
-            }
-
-            var customerProjects = await _projectRepo.GetQueryable()
-                .Where(p => p.CustomerId == customerId)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
-
-            var list = new List<ProjectResponse>();
-            foreach (var p in customerProjects)
-            {
-                var resp = await MapToResponseAsync(p);
-                resp.CustomerName = customer.Name;
-                list.Add(resp);
-            }
-
-            return Ok(list);
-        }
 
         // GET: api/Projects/owner/1
         [HttpGet("owner/{ownerId:int}")]
@@ -395,15 +331,6 @@ namespace Hero_CRM.Controllers
                 else
                 {
                     return BadRequest(new { message = "Valid owner user not found." });
-                }
-            }
-
-            if (request.CustomerId.HasValue)
-            {
-                var customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-                if (customer == null)
-                {
-                    return BadRequest(new { message = "Customer not found." });
                 }
             }
 
@@ -565,15 +492,6 @@ namespace Hero_CRM.Controllers
                 if (owner == null)
                 {
                     return BadRequest(new { message = "The specified owner user does not exist." });
-                }
-            }
-
-            if (request.CustomerId.HasValue)
-            {
-                var customerExists = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-                if (customerExists == null)
-                {
-                    return BadRequest(new { message = "The specified customer does not exist." });
                 }
             }
 

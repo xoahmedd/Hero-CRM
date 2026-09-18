@@ -6,6 +6,5 @@ namespace Application.DTOs.Report
         public string Label { get; set; } = string.Empty;
         public int TasksCreated { get; set; }
         public int ProjectsCreated { get; set; }
-        public int CustomersCreated { get; set; }
     }
 }
