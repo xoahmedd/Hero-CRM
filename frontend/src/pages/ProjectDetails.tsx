@@ -690,7 +690,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       </button>
 
       {/* Project Header */}
-      <Card style={{ padding: 24 }}>
+      <Card style={{ padding: "28px 32px" }}>
         {Boolean(
           project.isOverdue ||
           project.missedDeadlineReason ||
@@ -849,24 +849,24 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
 
       {/* Kanban View */}
       {activeTab === "tasks" && view === "kanban" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {TASK_STATUSES.map((status) => (
-            <div key={status} className="rounded-xl p-3" style={{ background: statusColors[status], minHeight: 200 }}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wide" style={{ fontFamily: "var(--font-display)", color: "#475569" }}>{status}</span>
-                <span className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: "rgba(0,0,0,0.07)", color: "#475569" }}>
+            <div key={status} className="rounded-2xl p-4 shadow-xs" style={{ background: statusColors[status], minHeight: 220 }}>
+              <div className="flex items-center justify-between mb-3.5">
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: "var(--font-display)", color: "#475569" }}>{status}</span>
+                <span className="text-xs px-2 py-0.5 rounded-md font-mono font-semibold" style={{ background: "rgba(0,0,0,0.08)", color: "#334155" }}>
                   {tasksByStatus[status]?.length ?? 0}
                 </span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {(tasksByStatus[status] ?? []).map((task) => {
                   const isTaskOverdue = checkIsOverdue(task);
                   return (
                     <button
                       key={task.id}
                       onClick={() => setSelectedTask(task)}
-                      className={`w-full text-left p-3 rounded-lg bg-white shadow-sm transition-shadow hover:shadow-md cursor-pointer ${
-                        isTaskOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : ""
+                      className={`w-full text-left p-4 rounded-xl bg-white shadow-xs transition-shadow hover:shadow-md cursor-pointer ${
+                        isTaskOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : "border border-slate-100/80"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-1 mb-1">

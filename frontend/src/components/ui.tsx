@@ -34,8 +34,8 @@ export function Badge({ label, type = "status" }: { label: string; type?: "statu
   const c = colors ?? { bg: "#f1f5f9", color: "#475569" };
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-      style={{ background: c.bg, color: c.color, fontFamily: "var(--font-mono)" }}
+      className="inline-flex items-center px-3 py-1 rounded-md text-xs font-normal tracking-normal"
+      style={{ background: c.bg, color: c.color, fontFamily: "var(--font-mono)", fontWeight: 400 }}
     >
       {label}
     </span>
@@ -45,7 +45,7 @@ export function Badge({ label, type = "status" }: { label: string; type?: "statu
 export function Card({ children, className = "", style = {} }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <div
-      className={`rounded-xl border ${className}`}
+      className={`rounded-2xl border shadow-xs ${className}`}
       style={{ background: "white", borderColor: "var(--color-border)", ...style }}
     >
       {children}
@@ -55,21 +55,21 @@ export function Card({ children, className = "", style = {} }: { children: React
 
 export function KpiCard({ label, value, sub, accent }: { label: string; value: number | string; sub?: string; accent?: string }) {
   return (
-    <Card style={{ padding: "22px 28px" }}>
-      <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)" }}>
+    <Card style={{ padding: "24px 28px" }}>
+      <div className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)" }}>
         {label}
       </div>
-      <div className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: accent ?? "var(--color-foreground)" }}>
+      <div className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: accent ?? "var(--color-foreground)" }}>
         {value}
       </div>
-      {sub && <div className="text-xs mt-1" style={{ color: "var(--color-muted-foreground)" }}>{sub}</div>}
+      {sub && <div className="text-xs mt-2" style={{ color: "var(--color-muted-foreground)" }}>{sub}</div>}
     </Card>
   );
 }
 
 export function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center justify-between mb-5">
       <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--color-foreground)" }}>{title}</h2>
       {action}
     </div>
@@ -78,17 +78,17 @@ export function SectionHeader({ title, action }: { title: string; action?: React
 
 export function ProgressBar({ value, color = "#1a3896" }: { value: number; color?: string }) {
   return (
-    <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: "#f1f5f9" }}>
+    <div className="w-full rounded-full overflow-hidden" style={{ height: 7, background: "#f1f5f9" }}>
       <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
     </div>
   );
 }
 
-export function Avatar({ initials, size = 32 }: { initials: string; size?: number }) {
+export function Avatar({ initials, size = 34 }: { initials: string; size?: number }) {
   return (
     <div
       className="flex items-center justify-center rounded-full text-white font-semibold flex-shrink-0"
-      style={{ width: size, height: size, background: "#1a3896", fontSize: size * 0.35, fontFamily: "var(--font-display)" }}
+      style={{ width: size, height: size, background: "#1a3896", fontSize: size * 0.36, fontFamily: "var(--font-display)" }}
     >
       {initials}
     </div>
@@ -102,7 +102,7 @@ export function Input({ placeholder, value, onChange, type = "text", style = {} 
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+      className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all focus:border-[#1a3896] focus:ring-1 focus:ring-[#1a3896]"
       style={{
         border: "1px solid var(--color-border)",
         background: "white",
@@ -119,7 +119,7 @@ export function Select({ value, onChange, options }: { value: string; onChange: 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="px-3 py-2 rounded-lg text-sm outline-none"
+      className="px-4 py-2.5 rounded-xl text-sm outline-none cursor-pointer focus:border-[#1a3896] focus:ring-1 focus:ring-[#1a3896]"
       style={{ border: "1px solid var(--color-border)", background: "white", color: "var(--color-foreground)", fontFamily: "var(--font-body)" }}
     >
       {options.map((o) => (
@@ -140,10 +140,11 @@ export function Button({ children, onClick, variant = "primary", size = "md", di
     <button
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center gap-2 rounded-lg font-medium transition-opacity"
+      className="inline-flex items-center justify-center gap-2 rounded-xl font-normal transition-all shadow-xs hover:opacity-90 active:scale-[0.98]"
       style={{
-        padding: size === "sm" ? "7px 14px" : "9px 20px",
-        fontSize: size === "sm" ? 12 : 13,
+        padding: size === "sm" ? "8px 18px" : "11px 24px",
+        fontSize: size === "sm" ? 13 : 14,
+        fontWeight: 450,
         fontFamily: "var(--font-display)",
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
@@ -158,13 +159,13 @@ export function Button({ children, onClick, variant = "primary", size = "md", di
 
 export function Modal({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(15,23,42,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: "rgba(15,23,42,0.6)" }}>
       <div className="rounded-2xl shadow-2xl w-full overflow-hidden" style={{ maxWidth: wide ? 680 : 480, background: "white" }}>
-        <div className="flex items-center justify-between px-7 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--color-foreground)" }}>{title}</h3>
-          <button onClick={onClose} className="text-xl" style={{ color: "var(--color-muted-foreground)" }}>×</button>
+        <div className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--color-foreground)" }}>{title}</h3>
+          <button onClick={onClose} className="text-2xl hover:opacity-75 transition-opacity" style={{ color: "var(--color-muted-foreground)" }}>×</button>
         </div>
-        <div className="p-7">{children}</div>
+        <div className="p-8">{children}</div>
       </div>
     </div>
   );
@@ -172,9 +173,9 @@ export function Modal({ title, onClose, children, wide = false }: { title: strin
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16" style={{ color: "var(--color-muted-foreground)" }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>◎</div>
-      <div className="text-sm">{message}</div>
+    <div className="flex flex-col items-center justify-center py-20" style={{ color: "var(--color-muted-foreground)" }}>
+      <div style={{ fontSize: 44, marginBottom: 16 }}>◎</div>
+      <div className="text-sm font-medium">{message}</div>
     </div>
   );
 }
@@ -186,7 +187,7 @@ export function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][
         <thead>
           <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
             {columns.map((col) => (
-              <th key={col} className="text-left py-3 px-5" style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <th key={col} className="text-left py-4 px-6" style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {col}
               </th>
             ))}
@@ -196,7 +197,7 @@ export function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][
           {rows.map((row, i) => (
             <tr key={i} className="transition-colors hover:bg-slate-50" style={{ borderBottom: "1px solid #f8fafc" }}>
               {row.map((cell, j) => (
-                <td key={j} className="py-3 px-5">{cell}</td>
+                <td key={j} className="py-4 px-6">{cell}</td>
               ))}
             </tr>
           ))}

@@ -82,9 +82,9 @@ export default function UsersPage({ currentUser }: { currentUser?: User }) {
         <Button onClick={() => setShowCreate(true)}>+ Create User</Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
         {users.map((user) => (
-          <Card key={user.id} style={{ padding: 20 }}>
+          <Card key={user.id} style={{ padding: "24px 26px" }}>
             <div className="flex items-start justify-between mb-3">
               <div
                 className="flex items-center justify-center rounded-full text-white font-bold"

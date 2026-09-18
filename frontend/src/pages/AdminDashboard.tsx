@@ -62,31 +62,31 @@ function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
+    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
       <span>
         {start + 1}–{end} of {totalCount}
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-6 px-1.5 rounded bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed font-semibold border border-slate-200 transition-colors cursor-pointer text-xs"
+          className="h-8 min-w-8 px-2.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed font-semibold border border-slate-200 transition-colors cursor-pointer text-xs"
           title="Previous page"
         >
           ‹
         </button>
         {getPageNumbers(currentPage, totalPages).map((p, idx) =>
           p === "..." ? (
-            <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 select-none text-xs">
+            <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 select-none text-xs">
               ...
             </span>
           ) : (
             <button
               key={p}
               onClick={() => onPageChange(Number(p))}
-              className={`min-w-6 h-6 px-1.5 rounded font-medium border text-xs transition-colors cursor-pointer ${
+              className={`min-w-8 h-8 px-2.5 rounded-lg font-medium border text-xs transition-colors cursor-pointer ${
                 p === currentPage
-                  ? "bg-[#1a3896] text-white border-[#1a3896] font-bold"
+                  ? "bg-[#1a3896] text-white border-[#1a3896] font-bold shadow-xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border-slate-200"
               }`}
             >
@@ -97,7 +97,7 @@ function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="h-6 px-1.5 rounded bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed font-semibold border border-slate-200 transition-colors cursor-pointer text-xs"
+          className="h-8 min-w-8 px-2.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed font-semibold border border-slate-200 transition-colors cursor-pointer text-xs"
           title="Next page"
         >
           ›
@@ -383,13 +383,13 @@ export default function AdminDashboard() {
   }, [timeFilter, projects, tasks, filteredProjects, filteredTasks]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Top filter bar */}
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium" style={{ color: "var(--color-muted-foreground)", marginLeft: 10 }}>
+        <div className="text-sm font-semibold tracking-wide" style={{ color: "var(--color-muted-foreground)" }}>
           Overview Analytics
         </div>
-        <div className="w-52">
+        <div className="w-56">
           <Select
             value={timeFilter}
             onChange={setTimeFilter}
@@ -407,15 +407,13 @@ export default function AdminDashboard() {
       {/* Row 1: Projects KPIs */}
       <div>
         <div
-          className="text-xs font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)", marginLeft: 10 }}
+          className="text-xs font-semibold uppercase tracking-widest mb-3.5"
+          style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)" }}
         >
           Projects
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div style={{ marginLeft: 10 }}>
-            <KpiCard label="Total Projects" value={totalProjects} />
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          <KpiCard label="Total Projects" value={totalProjects} />
           <KpiCard label="In Progress" value={inProgressProjects} accent="#1a3896" />
           <KpiCard label="Finished" value={finishedProjects} accent="#22c55e" />
           <KpiCard label="Overdue" value={overdueProjects} accent="#ef4444" />
@@ -425,15 +423,13 @@ export default function AdminDashboard() {
       {/* Row 2: Tasks KPIs */}
       <div>
         <div
-          className="text-xs font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)", marginLeft: 10 }}
+          className="text-xs font-semibold uppercase tracking-widest mb-3.5"
+          style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)" }}
         >
           Tasks
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          <div style={{ marginLeft: 10 }}>
-            <KpiCard label="Total Tasks" value={totalTasks} />
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-5">
+          <KpiCard label="Total Tasks" value={totalTasks} />
           <KpiCard label="In Progress (Assigned)" value={inProgressTasks} accent="#1a3896" />
           <KpiCard label="In Review" value={inReviewTasks} accent="#8b5cf6" />
           <KpiCard label="Finished" value={finishedTasks} accent="#22c55e" />
@@ -442,23 +438,23 @@ export default function AdminDashboard() {
       </div>
 
       {/* Row 3: Status Breakdown Donuts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Project Status Breakdown */}
-        <Card style={{ padding: 24, marginLeft: 10 }}>
-          <h3 className="font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>
+        <Card style={{ padding: "24px 28px" }}>
+          <h3 className="font-semibold text-base mb-5" style={{ fontFamily: "var(--font-display)" }}>
             Project Status Breakdown
           </h3>
-          <div className="flex items-center gap-6">
-            <ResponsiveContainer width={140} height={140}>
+          <div className="flex items-center gap-8">
+            <ResponsiveContainer width={150} height={150}>
               <PieChart>
                 <Pie
                   data={projectStatusData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={40}
-                  outerRadius={65}
+                  innerRadius={42}
+                  outerRadius={68}
                   dataKey="count"
-                  paddingAngle={2}
+                  paddingAngle={3}
                 >
                   {projectStatusData.map((item) => (
                     <Cell key={item.name} fill={item.color} />
@@ -467,12 +463,12 @@ export default function AdminDashboard() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-2 flex-1">
+            <div className="space-y-3 flex-1">
               {projectStatusData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                    <span className="text-sm">{item.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3 h-3 rounded-full" style={{ background: item.color }} />
+                    <span className="text-sm font-medium">{item.name}</span>
                   </div>
                   <span className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
                     {item.count}
@@ -484,21 +480,21 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Task Status Breakdown */}
-        <Card style={{ padding: 24 }}>
-          <h3 className="font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>
+        <Card style={{ padding: "24px 28px" }}>
+          <h3 className="font-semibold text-base mb-5" style={{ fontFamily: "var(--font-display)" }}>
             Task Status Breakdown
           </h3>
-          <div className="flex items-center gap-6">
-            <ResponsiveContainer width={140} height={140}>
+          <div className="flex items-center gap-8">
+            <ResponsiveContainer width={150} height={150}>
               <PieChart>
                 <Pie
                   data={taskStatusData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={40}
-                  outerRadius={65}
+                  innerRadius={42}
+                  outerRadius={68}
                   dataKey="count"
-                  paddingAngle={2}
+                  paddingAngle={3}
                 >
                   {taskStatusData.map((item) => (
                     <Cell key={item.name} fill={item.color} />
@@ -507,12 +503,12 @@ export default function AdminDashboard() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-2 flex-1">
+            <div className="space-y-3 flex-1">
               {taskStatusData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                    <span className="text-sm">{item.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3 h-3 rounded-full" style={{ background: item.color }} />
+                    <span className="text-sm font-medium">{item.name}</span>
                   </div>
                   <span className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
                     {item.count}
@@ -525,8 +521,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Row 4: All Projects (placed before Developer Workloads, with detailed task metrics & pagination) */}
-      <Card style={{ marginLeft: 10 }}>
-        <div className="px-6 pt-5 pb-3">
+      <Card>
+        <div className="px-7 pt-6 pb-4">
           <SectionHeader title="All Projects" />
         </div>
         <Table
@@ -594,10 +590,10 @@ export default function AdminDashboard() {
               >
                 {pOverdue}
               </span>,
-              <div key="prog" style={{ width: 110 }}>
+              <div key="prog" style={{ width: 120 }}>
                 <ProgressBar value={p.progress} color={p.status === "Finished" ? "#22c55e" : "#1a3896"} />
                 <span
-                  className="text-xs mt-0.5 inline-block"
+                  className="text-xs mt-1 inline-block"
                   style={{ fontFamily: "var(--font-mono)", color: "var(--color-muted-foreground)" }}
                 >
                   {p.progress}%
@@ -616,19 +612,19 @@ export default function AdminDashboard() {
       </Card>
 
       {/* Row 5: Developer Workloads (Paginated) */}
-      <Card style={{ marginLeft: 10 }}>
-        <div className="px-6 pt-5 pb-3">
+      <Card>
+        <div className="px-7 pt-6 pb-4">
           <SectionHeader title="Developer Workloads" />
         </div>
         <Table
           columns={["User", "Projects", "Tasks"]}
           rows={paginatedWorkloads.map((u) => [
-            <div key={u.id} className="flex items-center gap-2">
+            <div key={u.id} className="flex items-center gap-2.5">
               <span className="font-medium" style={{ color: "var(--color-foreground)" }}>
                 {u.name}
               </span>
               <span
-                className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+                className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider"
                 style={{
                   background: u.role === "Admin" ? "#eff6ff" : "#f1f5f9",
                   color: u.role === "Admin" ? "#1d4ed8" : "#475569",
@@ -656,14 +652,14 @@ export default function AdminDashboard() {
       </Card>
 
       {/* Row 6: Overdue Projects & Overdue Tasks (Separated, Side-by-Side, Paginated) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Overdue Projects */}
-        <Card style={{ marginLeft: 10 }}>
-          <div className="px-6 pt-5 pb-3 flex items-center justify-between">
+        <Card>
+          <div className="px-7 pt-6 pb-4 flex items-center justify-between">
             <SectionHeader title="Overdue Projects" />
             {overdueProjectsList.length > 0 && (
               <span
-                className="text-xs px-2.5 py-1 rounded-full font-semibold"
+                className="text-xs px-3 py-1 rounded-full font-semibold"
                 style={{ background: "#fee2e2", color: "#b91c1c" }}
               >
                 ⚠ {overdueProjectsList.length} overdue
@@ -671,7 +667,7 @@ export default function AdminDashboard() {
             )}
           </div>
           {overdueProjectsList.length === 0 ? (
-            <div className="px-6 py-8 text-center text-sm" style={{ color: "var(--color-muted-foreground)" }}>
+            <div className="px-7 py-10 text-center text-sm" style={{ color: "var(--color-muted-foreground)" }}>
               All clear — no overdue projects in this period.
             </div>
           ) : (
@@ -704,11 +700,11 @@ export default function AdminDashboard() {
 
         {/* Overdue Tasks */}
         <Card>
-          <div className="px-6 pt-5 pb-3 flex items-center justify-between">
+          <div className="px-7 pt-6 pb-4 flex items-center justify-between">
             <SectionHeader title="Overdue Tasks" />
             {overdueTasksList.length > 0 && (
               <span
-                className="text-xs px-2.5 py-1 rounded-full font-semibold"
+                className="text-xs px-3 py-1 rounded-full font-semibold"
                 style={{ background: "#fee2e2", color: "#b91c1c" }}
               >
                 ⚠ {overdueTasksList.length} overdue
@@ -716,7 +712,7 @@ export default function AdminDashboard() {
             )}
           </div>
           {overdueTasksList.length === 0 ? (
-            <div className="px-6 py-8 text-center text-sm" style={{ color: "var(--color-muted-foreground)" }}>
+            <div className="px-7 py-10 text-center text-sm" style={{ color: "var(--color-muted-foreground)" }}>
               All clear — no overdue tasks in this period.
             </div>
           ) : (
@@ -749,31 +745,31 @@ export default function AdminDashboard() {
       </div>
 
       {/* Row 7: Monthly Activity */}
-      <Card style={{ padding: 24, marginLeft: 10 }}>
-        <h3 className="font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>
+      <Card style={{ padding: "26px 30px" }}>
+        <h3 className="font-semibold text-base mb-5" style={{ fontFamily: "var(--font-display)" }}>
           Monthly Activity
         </h3>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={monthlyActivityData} margin={{ top: 10, right: 16, bottom: 0, left: -20 }}>
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={monthlyActivityData} margin={{ top: 10, right: 20, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }} />
-            <YAxis tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }} />
+            <XAxis dataKey="label" tick={{ fontSize: 12, fontFamily: "var(--font-mono)" }} />
+            <YAxis tick={{ fontSize: 12, fontFamily: "var(--font-mono)" }} />
             <Tooltip />
-            <Legend />
+            <Legend wrapperStyle={{ paddingTop: 10 }} />
             <Line
               type="monotone"
               dataKey="tasksCreated"
               stroke="#1a3896"
-              strokeWidth={2}
-              dot={{ r: 3 }}
+              strokeWidth={2.5}
+              dot={{ r: 3.5 }}
               name="Tasks Created"
             />
             <Line
               type="monotone"
               dataKey="projectsCreated"
               stroke="#4a8220"
-              strokeWidth={2}
-              dot={{ r: 3 }}
+              strokeWidth={2.5}
+              dot={{ r: 3.5 }}
               name="Projects Created"
             />
           </LineChart>

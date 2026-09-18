@@ -149,7 +149,13 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
 
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ fontFamily: "var(--font-body)" }}>
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{
+        fontFamily: "var(--font-body)",
+        background: "var(--color-sidebar)",
+      }}
+    >
       {/* Sidebar */}
       <aside
         className="flex flex-col transition-all duration-200"
@@ -253,29 +259,35 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
         </div>
       </aside>
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* Main area - floating canvas away from sidebar & page edges */}
+      <div
+        className="flex-1 flex flex-col min-w-0 my-2.5 md:my-3 mr-2.5 md:mr-3.5 ml-1.5 md:ml-2.5 rounded-2xl shadow-xl overflow-hidden border"
+        style={{
+          background: "var(--color-background)",
+          borderColor: "rgba(255, 255, 255, 0.08)",
+        }}
+      >
         {/* Topbar */}
         <header
-          className="flex items-center justify-between px-8 border-b flex-shrink-0"
-          style={{ paddingTop: 9, paddingBottom: 9, background: "white", borderColor: "var(--color-border)" }}
+          className="flex items-center justify-between px-8 md:px-10 border-b flex-shrink-0 rounded-t-2xl"
+          style={{ paddingTop: 16, paddingBottom: 16, background: "white", borderColor: "var(--color-border)" }}
         >
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--color-foreground)" }}>
             {navItems.flatMap((g) => g.items).find((i) => i.id === currentPage)?.label ?? "Hero CRM"}
           </div>
-          <div className="flex items-center gap-3" style={{ paddingRight: 13 }}>
+          <div className="flex items-center gap-4">
             {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setShowNotifs((s) => !s)}
-                className="relative flex items-center justify-center rounded-lg transition-colors"
-                style={{ width: 36, height: 36, background: showNotifs ? "#f1f5f9" : "transparent" }}
+                className="relative flex items-center justify-center rounded-xl transition-colors cursor-pointer"
+                style={{ width: 40, height: 40, background: showNotifs ? "#f1f5f9" : "transparent" }}
               >
-                <span style={{ fontSize: 16 }}>🔔</span>
+                <span style={{ fontSize: 17 }}>🔔</span>
                 {unreadCount > 0 && (
                   <span
-                    className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-white"
-                    style={{ width: 16, height: 16, fontSize: 9, background: "#ef4444", fontFamily: "var(--font-mono)" }}
+                    className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-white font-bold"
+                    style={{ width: 18, height: 18, fontSize: 10, background: "#ef4444", fontFamily: "var(--font-mono)" }}
                   >
                     {unreadCount}
                   </span>
@@ -284,14 +296,14 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
 
               {showNotifs && (
                 <div
-                  className="absolute right-0 top-10 rounded-xl shadow-xl z-50 overflow-hidden"
-                  style={{ width: 360, background: "white", border: "1px solid var(--color-border)" }}
+                  className="absolute right-0 top-12 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  style={{ width: 380, background: "white", border: "1px solid var(--color-border)" }}
                 >
-                  <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b" style={{ borderColor: "var(--color-border)" }}>
                     <div className="flex items-center gap-2">
                       <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14 }}>Notifications</span>
                       {unreadCount > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-mono">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-mono">
                           {unreadCount} new
                         </span>
                       )}
@@ -327,7 +339,7 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
                               setShowNotifs(false);
                             }
                           }}
-                          className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                          className="flex items-start gap-3 px-5 py-3.5 cursor-pointer transition-colors hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                           style={{ background: n.isRead ? "transparent" : "#faf5ff" }}
                         >
                           <div
@@ -373,8 +385,8 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
             {/* Logout */}
             <button
               onClick={onLogout}
-              className="text-sm px-3 py-1.5 rounded-lg transition-colors"
-              style={{ background: "#f1f5f9", color: "var(--color-muted-foreground)" }}
+              className="text-sm px-4 py-2 rounded-xl font-medium transition-all shadow-xs hover:bg-slate-200 cursor-pointer"
+              style={{ background: "#f1f5f9", color: "var(--color-foreground)" }}
             >
               Sign out
             </button>
@@ -382,7 +394,7 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-8 pr-12" style={{ background: "var(--color-background)" }}>
+        <main className="flex-1 overflow-y-auto p-8 md:p-10 rounded-b-2xl" style={{ background: "var(--color-background)" }}>
           {children}
         </main>
       </div>

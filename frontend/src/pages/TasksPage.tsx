@@ -400,7 +400,7 @@ export default function TasksPage({ currentUser }: Props) {
       {filtered.length === 0 ? (
         <EmptyState message="No tasks match your filters." />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {STATUSES.map((status) => {
             const statusTasks = byStatus[status] ?? [];
             const totalCount = statusTasks.length;
@@ -412,22 +412,22 @@ export default function TasksPage({ currentUser }: Props) {
             return (
               <div
                 key={status}
-                className="rounded-xl p-3 flex flex-col justify-between"
-                style={{ background: statusColors[status], minHeight: 280 }}
+                className="rounded-2xl p-4 flex flex-col justify-between shadow-xs"
+                style={{ background: statusColors[status], minHeight: 300 }}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wide" style={{ fontFamily: "var(--font-display)", color: "#475569" }}>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: "var(--font-display)", color: "#475569" }}>
                       {status}
                     </span>
-                    <span className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: "rgba(0,0,0,0.07)", color: "#475569" }}>
+                    <span className="text-xs px-2 py-0.5 rounded-md font-mono font-semibold" style={{ background: "rgba(0,0,0,0.08)", color: "#334155" }}>
                       {totalCount}
                     </span>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {pagedTasks.length === 0 ? (
-                      <div className="text-xs text-center py-8 text-slate-500 italic">
+                      <div className="text-xs text-center py-10 text-slate-500 italic">
                         No tasks
                       </div>
                     ) : (
@@ -441,8 +441,8 @@ export default function TasksPage({ currentUser }: Props) {
                         return (
                           <div
                             key={task.id}
-                            className={`p-3 rounded-lg bg-white shadow-sm transition-all ${
-                              isTaskOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : ""
+                            className={`p-4 rounded-xl bg-white shadow-xs transition-all ${
+                              isTaskOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : "border border-slate-100/80"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-1 mb-1.5">
@@ -630,20 +630,20 @@ export default function TasksPage({ currentUser }: Props) {
 
                 {/* Independent pagination for this status */}
                 {totalPages > 1 && (
-                  <div className="pt-3 mt-3 border-t border-slate-300/60 flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-[11px] text-slate-600 font-medium px-0.5">
+                  <div className="pt-3.5 mt-3.5 border-t border-slate-300/60 flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs text-slate-600 font-medium px-1">
                       <span>
                         {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, totalCount)} of {totalCount}
                       </span>
-                      <span className="font-mono text-[11px]">
+                      <span className="font-mono text-xs">
                         Pg {currentPage}/{totalPages}
                       </span>
                     </div>
-                    <div className="flex items-center justify-center gap-1 flex-wrap">
+                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
                       <button
                         onClick={() => setStatusPage(status, currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="h-6 px-1.5 rounded bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                        className="h-7 min-w-7 px-2 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold shadow-xs transition-colors cursor-pointer border border-slate-200"
                         title="Previous page"
                       >
                         ‹
@@ -658,10 +658,10 @@ export default function TasksPage({ currentUser }: Props) {
                           <button
                             key={p}
                             onClick={() => setStatusPage(status, Number(p))}
-                            className={`w-6 h-6 rounded text-xs transition-colors cursor-pointer font-medium ${
+                            className={`min-w-7 h-7 px-2 rounded-lg text-xs transition-colors cursor-pointer font-medium border ${
                               p === currentPage
-                                ? "bg-[#1a3896] text-white font-bold shadow-xs"
-                                : "bg-white text-slate-700 hover:bg-slate-100 shadow-xs"
+                                ? "bg-[#1a3896] text-white border-[#1a3896] font-bold shadow-xs"
+                                : "bg-white text-slate-700 hover:bg-slate-100 border-slate-200 shadow-xs"
                             }`}
                           >
                             {p}
@@ -672,7 +672,7 @@ export default function TasksPage({ currentUser }: Props) {
                       <button
                         onClick={() => setStatusPage(status, currentPage + 1)}
                         disabled={currentPage >= totalPages}
-                        className="h-6 px-1.5 rounded bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                        className="h-7 min-w-7 px-2 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold shadow-xs transition-colors cursor-pointer border border-slate-200"
                         title="Next page"
                       >
                         ›

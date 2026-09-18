@@ -351,7 +351,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       {filtered.length === 0 ? (
         <EmptyState message="No projects match your filters." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map((project) => {
             const isProjectOverdue =
               Boolean(project.isOverdue) ||
@@ -364,7 +364,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
               );
 
             return (
-              <Card key={project.id} style={{ padding: 24 }}>
+              <Card key={project.id} style={{ padding: "26px 28px" }}>
                 {isProjectOverdue && project.missedDeadlineReason && (
                   <div className="mb-3 p-2.5 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between">
                     <span>⚠️ Overdue: "{project.missedDeadlineReason}"</span>
@@ -470,7 +470,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5 mt-2">
                   <Button size="sm" variant="secondary" onClick={() => onViewProject(project.id)}>
                     View Details
                   </Button>

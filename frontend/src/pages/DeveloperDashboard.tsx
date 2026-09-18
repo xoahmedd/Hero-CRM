@@ -122,7 +122,7 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
   return (
     <div className="space-y-6">
       {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
         <KpiCard label="My Projects" value={assignedProjects.length} />
         <KpiCard label="Active Tasks" value={activeTasks.length} accent="#3b82f6" />
         <KpiCard label="Completed" value={completedTasks.length} accent="#22c55e" />
@@ -185,7 +185,7 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
                 return (
                   <div
                     key={task.id}
-                    className={`flex flex-col gap-2 p-3 rounded-lg transition-all ${
+                    className={`flex flex-col gap-2.5 p-4 rounded-xl transition-all ${
                       isOverdue ? "border-l-4 border-l-rose-500 ring-1 ring-rose-200" : ""
                     }`}
                     style={{ background: "#f8fafc", border: isOverdue ? undefined : "1px solid var(--color-border)" }}
