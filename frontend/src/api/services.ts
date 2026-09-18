@@ -391,8 +391,8 @@ export const dashboardApi = {
 
 // Reports API
 export const reportsApi = {
-  async getSummaryReports(): Promise<any> {
-    return await apiClient.get("/Reports/summary");
+  async getSummaryReports(months: number = 6): Promise<any> {
+    return await apiClient.get(`/Reports/workspace?months=${months}`);
   },
 };
 

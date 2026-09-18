@@ -24,13 +24,14 @@ namespace Hero_CRM.Controllers
         // Workspace analytics for the Reports page
         // =========================================================
         [HttpGet("workspace")]
+        [HttpGet("summary")]
         public async Task<ActionResult<WorkspaceReportResponse>> GetWorkspaceReport([FromQuery] int months = 6)
         {
-            if (months < 3 || months > 12)
+            if (months < 1 || months > 60)
             {
                 return BadRequest(new
                 {
-                    message = "Months must be between 3 and 12."
+                    message = "Months must be between 1 and 60."
                 });
             }
 
