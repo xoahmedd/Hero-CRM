@@ -8,7 +8,7 @@ namespace Domain.Entities.Tasks
     {
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public TaskItemStatus Status { get; set; } = TaskItemStatus.Todo;
+        public TaskItemStatus Status { get; set; } = TaskItemStatus.Assigned;
         public TaskPriority Priority { get; set; } = TaskPriority.Medium;
         public int ProjectId { get; set; }
         public int CreatedById { get; set; }

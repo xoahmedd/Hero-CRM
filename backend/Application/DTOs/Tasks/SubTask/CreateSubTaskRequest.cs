@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -15,6 +15,12 @@ namespace Application.DTOs.Tasks.SubTask
 
         [Required]
         public int TaskItemId { get; set; }
+
+        public int? TaskId
+        {
+            get => TaskItemId;
+            set { if (value.HasValue) TaskItemId = value.Value; }
+        }
 
         public DateTime? DueDate { get; set; }
     }

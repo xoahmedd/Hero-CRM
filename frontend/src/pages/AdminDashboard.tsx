@@ -61,7 +61,7 @@ export default function AdminDashboard() {
 
         {/* Donut chart */}
         <Card style={{ padding: 24, gridColumn: "span 2" }}>
-          <SectionHeader title="Department Request Distribution" />
+          <SectionHeader title="Department Project Distribution" />
           <div className="flex gap-6">
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
                     <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v) => [`${v} requests`]} />
+                <Tooltip formatter={(v) => [`${v} projects`]} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex-1 space-y-2">

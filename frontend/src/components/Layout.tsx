@@ -34,7 +34,7 @@ const navItems = [
   {
     label: "Work",
     items: [
-      { id: "projects", label: "Projects", icon: "▦", roles: ["Admin", "Developer", "DepartmentUser"] },
+      { id: "projects", label: "Projects", icon: "▦", roles: ["Admin", "Developer"] },
       { id: "tasks", label: "Tasks", icon: "✦", roles: ["Admin", "Developer"] },
       { id: "customers", label: "Customers", icon: "◑", roles: ["Admin"] },
     ],

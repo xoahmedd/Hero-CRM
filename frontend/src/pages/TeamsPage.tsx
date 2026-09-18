@@ -22,22 +22,33 @@ export default function TeamsPage() {
 
   const developers = usersList.filter((u) => u.role === "Developer");
 
-  function toggleMember(teamId: number, userId: number) {
+  async function toggleMember(teamId: number, userId: number) {
+    const team = teams.find((t) => t.id === teamId);
+    const hasMember = team?.memberIds.includes(userId);
+
+    try {
+      if (hasMember) {
+        await teamsApi.removeTeamMember(teamId, userId);
+      } else {
+        await teamsApi.addTeamMember(teamId, userId);
+      }
+    } catch {}
+
     setTeams((prev) =>
       prev.map((t) => {
         if (t.id !== teamId) return t;
-        const hasMember = t.memberIds.includes(userId);
+        const exists = t.memberIds.includes(userId);
         return {
           ...t,
-          memberIds: hasMember ? t.memberIds.filter((id) => id !== userId) : [...t.memberIds, userId],
+          memberIds: exists ? t.memberIds.filter((id) => id !== userId) : [...t.memberIds, userId],
         };
       })
     );
     if (manageTeam?.id === teamId) {
       setManageTeam((t) => {
         if (!t) return t;
-        const hasMember = t.memberIds.includes(userId);
-        return { ...t, memberIds: hasMember ? t.memberIds.filter((id) => id !== userId) : [...t.memberIds, userId] };
+        const exists = t.memberIds.includes(userId);
+        return { ...t, memberIds: exists ? t.memberIds.filter((id) => id !== userId) : [...t.memberIds, userId] };
       });
     }
   }

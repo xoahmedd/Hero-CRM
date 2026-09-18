@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import type { Task, Project } from "../data/mock";
+import type { Task, Project, User, Comment } from "../data/mock";
 import { MOCK_PROJECTS, MOCK_TASKS, MOCK_SUBTASKS, MOCK_COMMENTS, MOCK_USERS } from "../data/mock";
 import { projectsApi, tasksApi, subtasksApi, commentsApi } from "../api/services";
 import { Badge, Button, Card, Modal, ProgressBar, Select } from "../components/ui";
 
-const TASK_STATUSES = ["Todo", "InProgress", "Review", "Completed", "Cancelled"];
+const TASK_STATUSES = ["Assigned", "Review", "Completed", "Cancelled"];
 
 interface Props {
   projectId: number;
+  currentUser?: User;
   onBack: () => void;
 }
 
@@ -18,7 +19,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function ProjectDetails({ projectId, onBack }: Props) {
+export default function ProjectDetails({ projectId, currentUser, onBack }: Props) {
   const [project, setProject] = useState<Project | undefined>(
     MOCK_PROJECTS.find((p) => p.id === projectId)
   );
@@ -40,7 +41,7 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
       .then((p) => { if (p) setProject(p); })
       .catch(() => {});
     tasksApi.getTasksByProject(projectId)
-      .then((t) => { if (t && t.length > 0) setTasks(t); })
+      .then((t) => { if (Array.isArray(t)) setTasks(t); })
       .catch(() => {});
   }, [projectId]);
 
@@ -57,21 +58,31 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
 
   if (!project) return <div className="p-8 text-center">Project not found.</div>;
 
+  const isAdmin = currentUser?.role === "Admin";
+  const isOwner = currentUser && project ? project.ownerId === currentUser.id : false;
+
+  const displayTasks = isAdmin || isOwner
+    ? tasks
+    : tasks.filter((t) => t.assignees.some((a) => a.id === currentUser?.id));
+
   const tasksByStatus = TASK_STATUSES.reduce<Record<string, Task[]>>((acc, s) => {
-    acc[s] = tasks.filter((t) => t.status === s);
+    acc[s] = displayTasks.filter((t) => t.status === s);
     return acc;
   }, {});
 
-  const totalTasks = tasks.length;
-  const completed = tasks.filter((t) => t.status === "Completed").length;
+  const totalTasks = displayTasks.length;
+  const completed = displayTasks.filter((t) => t.status === "Completed").length;
   const completionRate = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
 
   async function updateTaskStatus(taskId: number, status: string) {
     try {
-      await tasksApi.updateTask(taskId, { status });
-    } catch {}
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: status as Task["status"] } : t)));
-    if (selectedTask?.id === taskId) setSelectedTask((t) => t ? { ...t, status: status as Task["status"] } : t);
+      await tasksApi.updateTaskStatus(taskId, status);
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: status as Task["status"] } : t)));
+      if (selectedTask?.id === taskId) setSelectedTask((t) => t ? { ...t, status: status as Task["status"] } : t);
+    } catch (err: any) {
+      console.error("Failed to update task status:", err);
+      alert(err?.message || "Failed to update task status.");
+    }
   }
 
   async function toggleSubtask(id: number) {
@@ -92,14 +103,37 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
     setNewSubtask("");
   }
 
+  async function handleAddComment() {
+    if (!newComment.trim() || !selectedTask) return;
+    const authorId = currentUser?.id || 1;
+    try {
+      await commentsApi.addComment(selectedTask.id, authorId, newComment);
+      const updated = await commentsApi.getComments(selectedTask.id);
+      if (updated && updated.length > 0) {
+        setComments((prev) => [...prev.filter((c) => c.taskId !== selectedTask.id), ...updated]);
+      }
+    } catch {
+      const fallbackComment: Comment = {
+        id: Date.now(),
+        taskId: selectedTask.id,
+        authorId,
+        authorName: currentUser?.fullName || "Sarah Chen",
+        authorAvatar: currentUser?.avatar || "SC",
+        content: newComment,
+        createdAt: new Date().toISOString(),
+      };
+      setComments((prev) => [...prev, fallbackComment]);
+    }
+    setNewComment("");
+  }
+
 
   const taskSubtasks = selectedTask ? subtasks.filter((s) => s.taskId === selectedTask.id) : [];
   const taskComments = selectedTask ? comments.filter((c) => c.taskId === selectedTask.id) : [];
   const members = MOCK_USERS.filter((u) => u.role === "Developer").slice(0, 4);
 
   const statusColors: Record<string, string> = {
-    Todo: "#f1f5f9",
-    InProgress: "#dbeafe",
+    Assigned: "#dbeafe",
     Review: "#fef3c7",
     Completed: "#dcfce7",
     Cancelled: "#fee2e2",
@@ -152,7 +186,7 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
               {[
                 { label: "Total", val: totalTasks },
                 { label: "Done", val: completed, color: "#22c55e" },
-                { label: "Active", val: tasks.filter((t) => t.status === "InProgress").length, color: "#3b82f6" },
+                { label: "Active", val: displayTasks.filter((t) => t.status === "Assigned" || t.status === "Review").length, color: "#3b82f6" },
               ].map((s) => (
                 <div key={s.label}>
                   <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 16, color: s.color ?? "var(--color-foreground)" }}>{s.val}</div>
@@ -185,7 +219,7 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
       </div>
 
       {activeTab === "tasks" && view === "kanban" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {TASK_STATUSES.map((status) => (
             <div key={status} className="rounded-xl p-3" style={{ background: statusColors[status], minHeight: 200 }}>
               <div className="flex items-center justify-between mb-3">
@@ -219,7 +253,7 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
       {activeTab === "tasks" && view === "list" && (
         <Card>
           <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
-            {tasks.map((task) => (
+            {displayTasks.map((task) => (
               <button key={task.id} onClick={() => setSelectedTask(task)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left">
                 <div>
                   <div className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>{task.title}</div>
@@ -268,14 +302,71 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
 
             <p className="text-sm" style={{ color: "var(--color-muted-foreground)" }}>{selectedTask.description}</p>
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ fontFamily: "var(--font-display)", color: "var(--color-muted-foreground)" }}>Update Status</label>
-              <Select
-                value={selectedTask.status}
-                onChange={(v) => updateTaskStatus(selectedTask.id, v)}
-                options={TASK_STATUSES.map((s) => ({ value: s, label: s }))}
-              />
-            </div>
+            {isAdmin ? (
+              selectedTask.status === "Review" ? (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ fontFamily: "var(--font-display)", color: "var(--color-muted-foreground)" }}>Admin Review Actions</label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <button
+                      onClick={() => updateTaskStatus(selectedTask.id, "Completed")}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer"
+                    >
+                      ✓ Approve (Complete)
+                    </button>
+                    <button
+                      onClick={() => updateTaskStatus(selectedTask.id, "Assigned")}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 transition-colors cursor-pointer"
+                    >
+                      ↺ Send Back (Rework)
+                    </button>
+                    <button
+                      onClick={() => updateTaskStatus(selectedTask.id, "Cancelled")}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 transition-colors cursor-pointer"
+                    >
+                      ✕ Cancel Task
+                    </button>
+                  </div>
+                  <Select
+                    value={selectedTask.status}
+                    onChange={(v) => updateTaskStatus(selectedTask.id, v)}
+                    options={TASK_STATUSES.map((s) => ({ value: s, label: s }))}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ fontFamily: "var(--font-display)", color: "var(--color-muted-foreground)" }}>Update Status</label>
+                  <Select
+                    value={selectedTask.status}
+                    onChange={(v) => updateTaskStatus(selectedTask.id, v)}
+                    options={TASK_STATUSES.map((s) => ({ value: s, label: s }))}
+                  />
+                </div>
+              )
+            ) : (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ fontFamily: "var(--font-display)", color: "var(--color-muted-foreground)" }}>Task Workflow</label>
+                {selectedTask.status === "Assigned" && (
+                  <Button onClick={() => updateTaskStatus(selectedTask.id, "Review")}>
+                    Submit for Review →
+                  </Button>
+                )}
+                {selectedTask.status === "Review" && (
+                  <div className="p-3 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-sm">
+                    ⏳ <strong>Under Review:</strong> This task has been submitted and is awaiting Admin review and approval.
+                  </div>
+                )}
+                {selectedTask.status === "Completed" && (
+                  <div className="p-3 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 text-sm">
+                    ✓ <strong>Completed:</strong> This task was reviewed and approved by Admin.
+                  </div>
+                )}
+                {selectedTask.status === "Cancelled" && (
+                  <div className="p-3 rounded-lg bg-rose-50 text-rose-900 border border-rose-200 text-sm">
+                    ✕ <strong>Cancelled:</strong> This task was cancelled.
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Subtasks */}
             <div>
@@ -331,8 +422,9 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
                   placeholder="Add a comment…"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
                 />
-                <Button size="sm" onClick={() => setNewComment("")}>Post</Button>
+                <Button size="sm" onClick={handleAddComment}>Post</Button>
               </div>
             </div>
           </div>

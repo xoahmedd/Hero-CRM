@@ -8,6 +8,7 @@ export const statusColors: Record<string, { bg: string; color: string }> = {
   Finished: { bg: "#f3f4f6", color: "#374151" },
   Submitted: { bg: "#fef9c3", color: "#854d0e" },
   Rejected: { bg: "#fce7f3", color: "#9d174d" },
+  Assigned: { bg: "#dbeafe", color: "#1d4ed8" },
   Todo: { bg: "#f1f5f9", color: "#475569" },
   InProgress: { bg: "#dbeafe", color: "#1d4ed8" },
   Review: { bg: "#fef3c7", color: "#92400e" },

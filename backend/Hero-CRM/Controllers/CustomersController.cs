@@ -4,11 +4,13 @@ using Application.Repos_Interfaces;
 using AutoMapper;
 using Domain.Entities.Customers;
 using Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class CustomersController : ControllerBase

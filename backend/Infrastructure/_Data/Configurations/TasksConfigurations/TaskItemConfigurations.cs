@@ -23,8 +23,16 @@ namespace Infrastructure._Data.Configurations.TasksConfigurations
 
             builder.HasIndex(t => t.CreatedById);
 
+            var taskStatusConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Domain.Enums.TaskItemStatus, string>(
+                v => v.ToString(),
+                v => v == "Review" ? Domain.Enums.TaskItemStatus.Review
+                   : v == "Completed" ? Domain.Enums.TaskItemStatus.Completed
+                   : (v == "Cancelled" || v == "Canceled") ? Domain.Enums.TaskItemStatus.Cancelled
+                   : Domain.Enums.TaskItemStatus.Assigned
+            );
+
             builder.Property(t => t.Status)
-                   .HasConversion<string>()
+                   .HasConversion(taskStatusConverter)
                    .HasMaxLength(50);
 
             builder.Property(t => t.Priority)

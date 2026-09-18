@@ -1,11 +1,13 @@
 using Application.DTOs.Report;
 using Domain.Enums;
 using Infrastructure._Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class ReportsController : ControllerBase

@@ -15,6 +15,9 @@ import type {
 export const authApi = {
   async login(email: string, password: string): Promise<User> {
     const res = await apiClient.post<any>("/Auth/login", { email, password });
+    if (res.token) {
+      localStorage.setItem("hero_crm_token", res.token);
+    }
     const role: Role = (res.roles && res.roles[0]) ? (res.roles[0] as Role) : "Developer";
     return {
       id: res.userId,
@@ -27,8 +30,30 @@ export const authApi = {
     };
   },
 
-  async getCurrentUser(userId: number): Promise<User> {
-    const res = await apiClient.get<any>(`/Auth/me?userId=${userId}`);
+  async register(fullName: string, email: string, password: string): Promise<User> {
+    const res = await apiClient.post<any>("/Auth/register", { fullName, email, password });
+    if (res.token) {
+      localStorage.setItem("hero_crm_token", res.token);
+    }
+    const role: Role = (res.roles && res.roles[0]) ? (res.roles[0] as Role) : "Developer";
+    return {
+      id: res.userId,
+      fullName: res.fullName,
+      email: res.email,
+      role,
+      avatar: res.profileImage || (res.fullName ? res.fullName.split(" ").map((n: string) => n[0]).join("") : "U"),
+      isActive: true,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+  },
+
+  logout(): void {
+    localStorage.removeItem("hero_crm_token");
+  },
+
+  async getCurrentUser(userId?: number): Promise<User> {
+    const endpoint = userId ? `/Auth/me?userId=${userId}` : "/Auth/me";
+    const res = await apiClient.get<any>(endpoint);
     return {
       id: res.id,
       fullName: res.fullName,
@@ -101,7 +126,12 @@ export const projectsApi = {
     priority?: string;
     requestingDepartment?: string;
   }): Promise<Project> {
-    return await apiClient.post("/Projects", data);
+    const payload = {
+      ...data,
+      startDate: data.startDate?.trim() ? data.startDate : null,
+      dueDate: data.dueDate?.trim() ? data.dueDate : null,
+    };
+    return await apiClient.post("/Projects", payload);
   },
 
   async updateProject(id: number, data: any): Promise<any> {
@@ -112,25 +142,7 @@ export const projectsApi = {
     return await apiClient.delete(`/Projects/${id}`);
   },
 
-  async submitDepartmentRequest(data: {
-    name: string;
-    description?: string;
-    requestingDepartment: string;
-    requestedBy: string;
-    businessJustification?: string;
-    targetDeadline?: string;
-    priority?: string;
-  }): Promise<any> {
-    return await apiClient.post("/Projects/request", data);
-  },
 
-  async approveRequest(id: number, ownerId: number, startDate?: string, dueDate?: string, priority?: string): Promise<any> {
-    return await apiClient.patch(`/Projects/${id}/approve`, { ownerId, startDate, dueDate, priority });
-  },
-
-  async rejectRequest(id: number, rejectionReason: string): Promise<any> {
-    return await apiClient.patch(`/Projects/${id}/reject`, { rejectionReason });
-  },
 
   async submitMissedReason(id: number, reason: string, category: string): Promise<any> {
     return await apiClient.put(`/Projects/${id}/missed-reason`, { reason, category });
@@ -190,11 +202,19 @@ export const tasksApi = {
     dueDate?: string;
     priority?: string;
   }): Promise<any> {
-    return await apiClient.post("/Tasks", data);
+    const payload = {
+      ...data,
+      dueDate: data.dueDate?.trim() ? data.dueDate : null,
+    };
+    return await apiClient.post("/Tasks", payload);
   },
 
   async updateTask(id: number, data: any): Promise<any> {
     return await apiClient.put(`/Tasks/${id}`, data);
+  },
+
+  async updateTaskStatus(id: number, status: string): Promise<any> {
+    return await apiClient.patch(`/Tasks/${id}/status?status=${encodeURIComponent(status)}`, { status });
   },
 
   async deleteTask(id: number): Promise<any> {
@@ -215,7 +235,13 @@ export const subtasksApi = {
   },
 
   async createSubTask(taskId: number, title: string): Promise<SubTask> {
-    return await apiClient.post("/SubTasks", { taskId, title });
+    const res = await apiClient.post<any>("/SubTasks", { taskItemId: taskId, taskId, title });
+    return {
+      id: res.id,
+      taskId: res.taskItemId || taskId,
+      title: res.title,
+      isCompleted: res.isCompleted || false,
+    };
   },
 
   async toggleSubTask(id: number): Promise<any> {
@@ -229,9 +255,9 @@ export const commentsApi = {
     const res = await apiClient.get<any[]>(`/Comments/task/${taskId}`);
     return res.map((c) => ({
       id: c.id,
-      taskId: c.taskId,
-      authorId: c.authorId,
-      authorName: c.authorName || "User",
+      taskId: c.taskItemId || c.taskId,
+      authorId: c.userId || c.authorId,
+      authorName: c.userName || c.authorName || "User",
       authorAvatar: c.authorAvatar || "U",
       content: c.content,
       createdAt: c.createdAt,
@@ -239,7 +265,7 @@ export const commentsApi = {
   },
 
   async addComment(taskId: number, authorId: number, content: string): Promise<any> {
-    return await apiClient.post("/Comments", { taskId, authorId, content });
+    return await apiClient.post("/Comments", { taskItemId: taskId, taskId, userId: authorId, authorId, content });
   },
 };
 
@@ -260,7 +286,11 @@ export const customersApi = {
   },
 
   async createCustomer(data: Omit<Customer, "id">): Promise<Customer> {
-    return await apiClient.post("/Customers", data);
+    const payload = {
+      ...data,
+      email: data.email?.trim() ? data.email : null,
+    };
+    return await apiClient.post("/Customers", payload);
   },
 
   async updateCustomer(id: number, data: Partial<Customer>): Promise<any> {
@@ -310,6 +340,14 @@ export const teamsApi = {
 
   async createTeam(name: string, description: string, memberIds: number[]): Promise<any> {
     return await apiClient.post("/Teams", { name, description, memberIds });
+  },
+
+  async addTeamMember(teamId: number, userId: number): Promise<any> {
+    return await apiClient.post(`/Teams/${teamId}/members/${userId}`);
+  },
+
+  async removeTeamMember(teamId: number, userId: number): Promise<any> {
+    return await apiClient.delete(`/Teams/${teamId}/members/${userId}`);
   },
 };
 

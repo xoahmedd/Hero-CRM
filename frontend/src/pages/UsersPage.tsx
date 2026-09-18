@@ -4,7 +4,7 @@ import { MOCK_USERS } from "../data/mock";
 import { usersApi } from "../api/services";
 import { Button, Card, Input, Modal, Select, Table } from "../components/ui";
 
-const ROLES: Role[] = ["Admin", "Developer", "DepartmentUser"];
+const ROLES: Role[] = ["Admin", "Developer"];
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
@@ -58,7 +58,6 @@ export default function UsersPage() {
   const roleColors: Record<Role, { bg: string; color: string }> = {
     Admin: { bg: "#dce8ff", color: "#1a3896" },
     Developer: { bg: "#dcfce7", color: "#15803d" },
-    DepartmentUser: { bg: "#fef9c3", color: "#854d0e" },
   };
 
   return (

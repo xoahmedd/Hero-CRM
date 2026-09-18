@@ -35,6 +35,8 @@ namespace Application.DTOs.Tasks.TaskItem
 
         public bool IsOverdue { get; set; }
 
+        public List<TaskAssigneeResponse> Assignees { get; set; } = new();
+
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }

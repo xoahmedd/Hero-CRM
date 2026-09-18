@@ -10,12 +10,16 @@ using Domain.Entities.Projects;
 using Domain.Entities.Tasks;
 using Domain.Enums;
 using Infrastructure._Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class TasksController : ControllerBase
@@ -43,6 +47,25 @@ namespace Hero_CRM.Controllers
             _mapper = mapper;
         }
 
+        private int CurrentUserId
+        {
+            get
+            {
+                var claimVal = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                            ?? User.FindFirst("nameid")?.Value
+                            ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                            ?? User.FindFirst("sub")?.Value
+                            ?? User.FindFirst(ClaimTypes.Name)?.Value;
+                return int.TryParse(claimVal, out var id) ? id : 0;
+            }
+        }
+
+        private bool IsAdmin =>
+            User.IsInRole("Admin")
+            || User.HasClaim(ClaimTypes.Role, "Admin")
+            || User.HasClaim("role", "Admin")
+            || User.HasClaim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", "Admin");
+
         private async Task<TaskResponse> MapToResponseAsync(TaskItem task)
         {
             var response = _mapper.Map<TaskResponse>(task);
@@ -52,6 +75,24 @@ namespace Hero_CRM.Controllers
 
             var creator = await _userManager.FindByIdAsync(task.CreatedById.ToString());
             response.CreatedByName = creator?.FullName;
+
+            var assignees = await _context.TaskAssignees
+                .AsNoTracking()
+                .Where(a => a.TaskItemId == task.Id)
+                .ToListAsync();
+
+            foreach (var a in assignees)
+            {
+                var user = await _userManager.FindByIdAsync(a.UserId.ToString());
+                response.Assignees.Add(new TaskAssigneeResponse
+                {
+                    UserId = a.UserId,
+                    FullName = user?.FullName ?? string.Empty,
+                    Email = user?.Email ?? string.Empty,
+                    ProfileImage = user?.ProfileImage,
+                    AssignedAt = a.AssignedAt
+                });
+            }
 
             return response;
         }
@@ -65,36 +106,56 @@ namespace Hero_CRM.Controllers
             [FromQuery] TaskItemStatus? status = null,
             [FromQuery] TaskPriority? priority = null)
         {
+            var query = _taskRepo.GetQueryable();
+
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                query = query.Where(t => t.Assignees.Any(a => a.UserId == userId));
+            }
+
             if (pageIndex.HasValue || pageSize.HasValue || !string.IsNullOrWhiteSpace(search) || status.HasValue || priority.HasValue)
             {
                 var s = search?.Trim();
 
-                var pagedTasks = await _taskRepo.GetPagedAsync(
-                    pageIndex ?? 1,
-                    pageSize ?? 20,
-                    predicate: t =>
-                        (string.IsNullOrWhiteSpace(s) || (
-                            t.Title.Contains(s) ||
-                            (t.Description != null && t.Description.Contains(s))
-                        )) &&
-                        (!status.HasValue || t.Status == status.Value) &&
-                        (!priority.HasValue || t.Priority == priority.Value),
-                    orderBy: q => q.OrderByDescending(t => t.CreatedAt));
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    query = query.Where(t =>
+                        t.Title.Contains(s) ||
+                        (t.Description != null && t.Description.Contains(s)));
+                }
+
+                if (status.HasValue)
+                {
+                    query = query.Where(t => t.Status == status.Value);
+                }
+
+                if (priority.HasValue)
+                {
+                    query = query.Where(t => t.Priority == priority.Value);
+                }
+
+                var totalCount = await query.CountAsync();
+                var pagedTasks = await query
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Skip(((pageIndex ?? 1) - 1) * (pageSize ?? 20))
+                    .Take(pageSize ?? 20)
+                    .ToListAsync();
 
                 var responses = new List<TaskResponse>();
-                foreach (var t in pagedTasks.Data)
+                foreach (var t in pagedTasks)
                 {
                     responses.Add(await MapToResponseAsync(t));
                 }
 
                 return Ok(new Pagination<TaskResponse>(
-                    pagedTasks.PageIndex,
-                    pagedTasks.PageSize,
-                    pagedTasks.Count,
+                    pageIndex ?? 1,
+                    pageSize ?? 20,
+                    totalCount,
                     responses));
             }
 
-            var tasks = await _taskRepo.GetQueryable()
+            var tasks = await query
                 .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
@@ -121,6 +182,22 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var isAssigned = await _taskRepo.GetQueryable()
+                    .Where(t => t.Id == id && (
+                        t.Assignees.Any(a => a.UserId == userId) ||
+                        t.Project.OwnerId == userId ||
+                        t.CreatedById == userId))
+                    .AnyAsync();
+
+                if (!isAssigned)
+                {
+                    return Forbid();
+                }
+            }
+
             var response = await MapToResponseAsync(task);
             return Ok(response);
         }
@@ -142,16 +219,26 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            var query = _taskRepo.GetQueryable()
+                .Where(t => t.ProjectId == projectId);
+
+            if (!IsAdmin && project.OwnerId != CurrentUserId)
+            {
+                var userId = CurrentUserId;
+                query = query.Where(t => t.Assignees.Any(a => a.UserId == userId));
+            }
+
             if (pageIndex.HasValue || pageSize.HasValue)
             {
-                var pagedTasks = await _taskRepo.GetPagedAsync(
-                    pageIndex ?? 1,
-                    pageSize ?? 20,
-                    predicate: t => t.ProjectId == projectId,
-                    orderBy: q => q.OrderByDescending(t => t.CreatedAt));
+                var totalCount = await query.CountAsync();
+                var pagedTasks = await query
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Skip(((pageIndex ?? 1) - 1) * (pageSize ?? 20))
+                    .Take(pageSize ?? 20)
+                    .ToListAsync();
 
                 var responses = new List<TaskResponse>();
-                foreach (var t in pagedTasks.Data)
+                foreach (var t in pagedTasks)
                 {
                     var resp = await MapToResponseAsync(t);
                     resp.ProjectName = project.Name;
@@ -159,14 +246,13 @@ namespace Hero_CRM.Controllers
                 }
 
                 return Ok(new Pagination<TaskResponse>(
-                    pagedTasks.PageIndex,
-                    pagedTasks.PageSize,
-                    pagedTasks.Count,
+                    pageIndex ?? 1,
+                    pageSize ?? 20,
+                    totalCount,
                     responses));
             }
 
-            var projectTasks = await _taskRepo.GetQueryable()
-                .Where(t => t.ProjectId == projectId)
+            var projectTasks = await query
                 .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
@@ -188,6 +274,11 @@ namespace Hero_CRM.Controllers
             [FromQuery] int? pageIndex = null,
             [FromQuery] int? pageSize = null)
         {
+            if (!IsAdmin && userId != CurrentUserId)
+            {
+                return Forbid();
+            }
+
             var user = await _userManager.FindByIdAsync(userId.ToString());
 
             if (user == null)
@@ -247,14 +338,15 @@ namespace Hero_CRM.Controllers
             var targetUserId = userId;
             if (!targetUserId.HasValue)
             {
-                var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (int.TryParse(userIdValue, out var parsedId))
-                {
-                    targetUserId = parsedId;
-                }
+                targetUserId = CurrentUserId;
             }
 
-            if (!targetUserId.HasValue)
+            if (!IsAdmin && targetUserId != CurrentUserId)
+            {
+                return Forbid();
+            }
+
+            if (!targetUserId.HasValue || targetUserId.Value == 0)
             {
                 return BadRequest(new
                 {
@@ -308,6 +400,7 @@ namespace Hero_CRM.Controllers
 
 
         // POST: api/Tasks
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<TaskResponse>> CreateTask(CreateTaskRequest request)
         {
@@ -336,7 +429,25 @@ namespace Hero_CRM.Controllers
             await _taskRepo.AddAsync(task);
             await _taskRepo.SaveChangesAsync();
 
-            var response = _mapper.Map<TaskResponse>(task);
+            if (request.AssigneeIds != null && request.AssigneeIds.Any())
+            {
+                foreach (var userId in request.AssigneeIds.Distinct())
+                {
+                    var user = await _userManager.FindByIdAsync(userId.ToString());
+                    if (user != null)
+                    {
+                        _context.TaskAssignees.Add(new TaskAssignee
+                        {
+                            TaskItemId = task.Id,
+                            UserId = userId,
+                            AssignedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            var response = await MapToResponseAsync(task);
             response.ProjectName = project.Name;
             response.CreatedByName = creator.FullName;
 
@@ -347,6 +458,7 @@ namespace Hero_CRM.Controllers
         }
 
         // PUT: api/Tasks/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateTask(int id, UpdateTaskRequest request)
         {
@@ -372,6 +484,7 @@ namespace Hero_CRM.Controllers
         }
 
         // DELETE: api/Tasks/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTask(int id)
         {
@@ -395,6 +508,7 @@ namespace Hero_CRM.Controllers
         }
 
         // POST: api/Tasks/{taskId}/assignees/{userId}
+        [Authorize(Roles = "Admin")]
         [HttpPost("{taskId:int}/assignees/{userId:int}")]
         public async Task<IActionResult> AssignUserToTask(int taskId, int userId)
         {
@@ -488,8 +602,16 @@ namespace Hero_CRM.Controllers
         public async Task<IActionResult> GetOverdueTasks()
         {
             var now = DateTime.UtcNow;
-            var overdueTasks = await _taskRepo.GetQueryable()
-                .Where(t => t.DueDate.HasValue && t.DueDate < now && t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled)
+            var query = _taskRepo.GetQueryable()
+                .Where(t => t.DueDate.HasValue && t.DueDate < now && t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
+
+            if (!IsAdmin)
+            {
+                var currentId = CurrentUserId;
+                query = query.Where(t => t.Assignees.Any(a => a.UserId == currentId));
+            }
+
+            var overdueTasks = await query
                 .OrderByDescending(t => t.DueDate)
                 .ToListAsync();
 
@@ -506,6 +628,11 @@ namespace Hero_CRM.Controllers
         [HttpGet("assigned/{userId:int}")]
         public async Task<IActionResult> GetTasksAssignedToUser(int userId)
         {
+            if (!IsAdmin && userId != CurrentUserId)
+            {
+                return Forbid();
+            }
+
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
@@ -570,6 +697,7 @@ namespace Hero_CRM.Controllers
         }
 
         // DELETE: api/Tasks/{taskId}/assignees/{userId}
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{taskId:int}/assignees/{userId:int}")]
         public async Task<IActionResult> RemoveUserFromTask(int taskId, int userId)
         {
@@ -596,8 +724,20 @@ namespace Hero_CRM.Controllers
 
         // PATCH: api/Tasks/{id}/status
         [HttpPatch("{id:int}/status")]
-        public async Task<IActionResult> UpdateTaskStatus(int id, [FromQuery] TaskItemStatus status)
+        public async Task<IActionResult> UpdateTaskStatus(
+            int id,
+            [FromQuery] TaskItemStatus? status = null,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] UpdateTaskStatusDto? dto = null)
         {
+            var targetStatus = dto?.Status ?? status;
+            if (!targetStatus.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message = "Status is required."
+                });
+            }
+
             var task = await _taskRepo.GetByIdAsync(id);
 
             if (task == null)
@@ -608,11 +748,92 @@ namespace Hero_CRM.Controllers
                 });
             }
 
-            task.Status = status;
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var isAssignee = await _context.TaskAssignees
+                    .AnyAsync(a => a.TaskItemId == id && a.UserId == userId);
+
+                if (!isAssignee)
+                {
+                    return StatusCode(403, new
+                    {
+                        message = "Forbidden: You are not assigned to this task."
+                    });
+                }
+
+                // Developer can only move tasks to Review
+                if (targetStatus.Value != TaskItemStatus.Review)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Developers can only submit assigned tasks for Review."
+                    });
+                }
+
+                if (task.Status != TaskItemStatus.Assigned)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Only tasks in Assigned status can be submitted for Review."
+                    });
+                }
+            }
+
+            task.Status = targetStatus.Value;
             task.UpdatedAt = DateTime.UtcNow;
 
             _taskRepo.Update(task);
             await _taskRepo.SaveChangesAsync();
+
+            // Notify on status transition
+            try
+            {
+                if (targetStatus.Value == TaskItemStatus.Review)
+                {
+                    var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+                    if (adminRole != null)
+                    {
+                        var adminUserIds = await _context.UserRoles
+                            .Where(ur => ur.RoleId == adminRole.Id)
+                            .Select(ur => ur.UserId)
+                            .ToListAsync();
+
+                        foreach (var adminId in adminUserIds)
+                        {
+                            await _notificationService.SendNotificationAsync(
+                                adminId,
+                                "Task Submitted for Review",
+                                $"Task '{task.Title}' has been submitted for review.",
+                                NotificationType.General,
+                                task.ProjectId,
+                                task.Id);
+                        }
+                    }
+                }
+                else if (IsAdmin)
+                {
+                    var assigneeIds = await _context.TaskAssignees
+                        .Where(a => a.TaskItemId == id)
+                        .Select(a => a.UserId)
+                        .ToListAsync();
+
+                    foreach (var aId in assigneeIds)
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            aId,
+                            $"Task Status: {targetStatus.Value}",
+                            $"Admin updated status of task '{task.Title}' to {targetStatus.Value}.",
+                            NotificationType.General,
+                            task.ProjectId,
+                            task.Id);
+                    }
+                }
+            }
+            catch
+            {
+                // Status update succeeded; notification failure should not block response
+            }
 
             return Ok(new
             {
@@ -623,6 +844,7 @@ namespace Hero_CRM.Controllers
         }
 
         // PATCH: api/Tasks/{id}/priority
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id:int}/priority")]
         public async Task<IActionResult> UpdateTaskPriority(int id, [FromQuery] TaskPriority priority)
         {
@@ -649,5 +871,10 @@ namespace Hero_CRM.Controllers
                 priority = task.Priority
             });
         }
+    }
+
+    public class UpdateTaskStatusDto
+    {
+        public TaskItemStatus? Status { get; set; }
     }
 }

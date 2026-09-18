@@ -243,6 +243,33 @@ namespace Hero_CRM.Controllers
             });
         }
 
+        // PATCH: api/SubTasks/1/toggle
+        [HttpPatch("{id:int}/toggle")]
+        public async Task<IActionResult> ToggleSubTask(int id)
+        {
+            var subTask = await _subTaskRepo.GetByIdAsync(id);
+
+            if (subTask == null)
+            {
+                return NotFound(new
+                {
+                    message = "Subtask not found."
+                });
+            }
+
+            subTask.IsCompleted = !subTask.IsCompleted;
+
+            _subTaskRepo.Update(subTask);
+            await _subTaskRepo.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = $"Subtask marked as {(subTask.IsCompleted ? "completed" : "incomplete")}.",
+                id = subTask.Id,
+                isCompleted = subTask.IsCompleted
+            });
+        }
+
         // DELETE: api/SubTasks/1
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteSubTask(int id)

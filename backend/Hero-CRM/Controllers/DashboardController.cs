@@ -4,12 +4,12 @@ using Application.DTOs.Tasks.TaskItem;
 using Application.Repos_Interfaces;
 using AutoMapper;
 using Domain.Entities.Collaborations;
-using Domain.Entities.Customers;
 using Domain.Entities.Identity;
 using Domain.Entities.Projects;
 using Domain.Entities.Tasks;
 using Domain.Enums;
 using Infrastructure._Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,11 +20,11 @@ using System.Threading.Tasks;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase
     {
-        private readonly IGenericRepository<Customer> _customerRepo;
         private readonly IGenericRepository<Project> _projectRepo;
         private readonly IGenericRepository<TaskItem> _taskRepo;
         private readonly IGenericRepository<Notification> _notificationRepo;
@@ -33,7 +33,6 @@ namespace Hero_CRM.Controllers
         private readonly IMapper _mapper;
 
         public DashboardController(
-            IGenericRepository<Customer> customerRepo,
             IGenericRepository<Project> projectRepo,
             IGenericRepository<TaskItem> taskRepo,
             IGenericRepository<Notification> notificationRepo,
@@ -41,7 +40,6 @@ namespace Hero_CRM.Controllers
             ApplicationDbContext context,
             IMapper mapper)
         {
-            _customerRepo = customerRepo;
             _projectRepo = projectRepo;
             _taskRepo = taskRepo;
             _notificationRepo = notificationRepo;
@@ -50,44 +48,8 @@ namespace Hero_CRM.Controllers
             _mapper = mapper;
         }
 
-        // GET: api/Dashboard
-        [HttpGet]
-        public async Task<IActionResult> GetDashboard()
-        {
-            var totalCustomers = await _customerRepo.GetQueryable().CountAsync();
-
-            var projectsQuery = _projectRepo.GetQueryable();
-            var totalProjects = await projectsQuery.CountAsync();
-            var activeProjects = await projectsQuery.CountAsync(p => p.Status == ProjectStatus.Working);
-
-            var tasksQuery = _taskRepo.GetQueryable();
-            var totalTasks = await tasksQuery.CountAsync();
-            var completedTasks = await tasksQuery.CountAsync(t => t.Status == TaskItemStatus.Completed);
-            var pendingTasks = await tasksQuery.CountAsync(t => t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
-
-            var now = DateTime.UtcNow;
-            var overdueTasks = await tasksQuery.CountAsync(t =>
-                t.DueDate.HasValue &&
-                t.DueDate < now &&
-                t.Status != TaskItemStatus.Completed &&
-                t.Status != TaskItemStatus.Cancelled);
-
-            var totalUsers = await _userManager.Users.CountAsync(u => u.IsActive);
-
-            return Ok(new
-            {
-                totalCustomers,
-                totalProjects,
-                activeProjects,
-                totalTasks,
-                completedTasks,
-                pendingTasks,
-                overdueTasks,
-                totalUsers
-            });
-        }
-
         // GET: api/Dashboard/admin
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin")]
         public async Task<ActionResult<AdminDashboardResponse>> GetAdminDashboard()
         {
@@ -328,8 +290,8 @@ namespace Hero_CRM.Controllers
 
             var totalTasks = await projectTasksQuery.CountAsync();
             var completedTasks = await projectTasksQuery.CountAsync(t => t.Status == TaskItemStatus.Completed);
-            var inProgressTasks = await projectTasksQuery.CountAsync(t => t.Status == TaskItemStatus.InProgress);
-            var todoTasks = await projectTasksQuery.CountAsync(t => t.Status == TaskItemStatus.Todo);
+            var assignedTasks = await projectTasksQuery.CountAsync(t => t.Status == TaskItemStatus.Assigned);
+            var reviewTasks = await projectTasksQuery.CountAsync(t => t.Status == TaskItemStatus.Review);
 
             var completionPercentage = totalTasks == 0
                 ? 0
@@ -345,8 +307,10 @@ namespace Hero_CRM.Controllers
                 requestingDepartment = project.RequestingDepartment,
                 totalTasks,
                 completedTasks,
-                inProgressTasks,
-                todoTasks,
+                assignedTasks,
+                reviewTasks,
+                inProgressTasks = assignedTasks,
+                todoTasks = assignedTasks,
                 completionPercentage
             });
         }

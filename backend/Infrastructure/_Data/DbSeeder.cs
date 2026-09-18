@@ -18,8 +18,20 @@ namespace Infrastructure._Data
     {
         public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
         {
+            // Normalize any legacy status values in database
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE [TaskItems] SET [Status] = 'Assigned' WHERE [Status] IN ('InProgress', 'Todo', 'In Progress', 'To Do', '0')"
+                );
+            }
+            catch
+            {
+                // In case table does not exist yet
+            }
+
             // Seed Roles
-            string[] roles = new[] { "Admin", "Developer", "DepartmentUser" };
+            string[] roles = new[] { "Admin", "Developer" };
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
@@ -39,7 +51,7 @@ namespace Infrastructure._Data
                     (new ApplicationUser { FullName = "Lucas Rivera", Email = "lucas.rivera@herocrm.com", UserName = "lucas.rivera@herocrm.com", ProfileImage = "LR", IsActive = true }, "Developer", "Password123!"),
                     (new ApplicationUser { FullName = "Elena Volkov", Email = "elena.volkov@herocrm.com", UserName = "elena.volkov@herocrm.com", ProfileImage = "EV", IsActive = false }, "Developer", "Password123!"),
                     (new ApplicationUser { FullName = "David Park", Email = "david.park@herocrm.com", UserName = "david.park@herocrm.com", ProfileImage = "DP", IsActive = true }, "Developer", "Password123!"),
-                    (new ApplicationUser { FullName = "Aisha Nwosu", Email = "aisha.nwosu@herocrm.com", UserName = "aisha.nwosu@herocrm.com", ProfileImage = "AN", IsActive = true }, "DepartmentUser", "Password123!"),
+                    (new ApplicationUser { FullName = "Aisha Nwosu", Email = "aisha.nwosu@herocrm.com", UserName = "aisha.nwosu@herocrm.com", ProfileImage = "AN", IsActive = true }, "Developer", "Password123!"),
                     (new ApplicationUser { FullName = "Marco Ferretti", Email = "marco.ferretti@herocrm.com", UserName = "marco.ferretti@herocrm.com", ProfileImage = "MF", IsActive = true }, "Developer", "Password123!"),
                 };
 
@@ -94,8 +106,8 @@ namespace Infrastructure._Data
                     new Project { Name = "HR Onboarding Automation", Description = "Automated onboarding workflow platform.", Status = ProjectStatus.Overdue, Priority = ProjectPriority.Medium, StartDate = DateTime.UtcNow.AddDays(-90), DueDate = DateTime.UtcNow.AddDays(-10), OwnerId = devLucas?.Id ?? devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "Human Resources" },
                     new Project { Name = "Meridian Compliance Dashboard", Description = "Real-time compliance monitoring dashboard.", Status = ProjectStatus.Finished, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(-120), DueDate = DateTime.UtcNow.AddDays(-20), OwnerId = devJames.Id, CustomerId = custMeridian?.Id, RequestingDepartment = "Legal" },
                     new Project { Name = "EuroRetail Market Expansion", Description = "Platform localization for EU market launch.", Status = ProjectStatus.Planning, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow.AddDays(10), DueDate = DateTime.UtcNow.AddDays(100), OwnerId = devDavid?.Id ?? devJames.Id, CustomerId = custEuro?.Id, RequestingDepartment = "Sales" },
-                    new Project { Name = "Quantum Analytics Data Pipeline", Description = "ETL pipeline for analytics ingestion.", Status = ProjectStatus.Submitted, Priority = ProjectPriority.Medium, DueDate = DateTime.UtcNow.AddDays(60), OwnerId = 0, CustomerId = custQuantum?.Id, RequestingDepartment = "Data Science", RequestedBy = "Aisha Nwosu", BusinessJustification = "Reduce data latency by 80%" },
-                    new Project { Name = "SkyBridge Fleet Tracker", Description = "GPS-integrated fleet management.", Status = ProjectStatus.Submitted, Priority = ProjectPriority.High, DueDate = DateTime.UtcNow.AddDays(40), OwnerId = 0, CustomerId = custSky?.Id, RequestingDepartment = "Operations", RequestedBy = "Aisha Nwosu", BusinessJustification = "Cut fuel costs by 20%" },
+                    new Project { Name = "Quantum Analytics Data Pipeline", Description = "ETL pipeline for analytics ingestion.", Status = ProjectStatus.Planning, Priority = ProjectPriority.Medium, StartDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(60), OwnerId = devDavid?.Id ?? devJames.Id, CustomerId = custQuantum?.Id, RequestingDepartment = "Data Science" },
+                    new Project { Name = "SkyBridge Fleet Tracker", Description = "GPS-integrated fleet management.", Status = ProjectStatus.Planning, Priority = ProjectPriority.High, StartDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(40), OwnerId = devLucas?.Id ?? devJames.Id, CustomerId = custSky?.Id, RequestingDepartment = "Operations" },
                     new Project { Name = "Internal Knowledge Base", Description = "Wiki-style internal knowledge base.", Status = ProjectStatus.Finished, Priority = ProjectPriority.Low, StartDate = DateTime.UtcNow.AddDays(-150), DueDate = DateTime.UtcNow.AddDays(-30), OwnerId = devMarco?.Id ?? devJames.Id, CustomerId = custApex?.Id, RequestingDepartment = "IT" }
                 };
                 await context.Projects.AddRangeAsync(projects);
@@ -103,57 +115,244 @@ namespace Infrastructure._Data
             }
 
             // Seed Tasks
-            if (!await context.TaskItems.AnyAsync() && adminUser != null)
+            if (adminUser != null)
             {
                 var proj1 = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Apex CRM Portal Redesign");
                 var proj2 = await context.Projects.FirstOrDefaultAsync(p => p.Name == "NovaTech API Gateway");
                 var proj3 = await context.Projects.FirstOrDefaultAsync(p => p.Name == "HR Onboarding Automation");
+                var proj5 = await context.Projects.FirstOrDefaultAsync(p => p.Name == "EuroRetail Market Expansion");
 
-                if (proj1 != null && proj2 != null)
+                var taskDefs = new List<(
+                    string Title,
+                    string Description,
+                    TaskItemStatus Status,
+                    TaskPriority Priority,
+                    Project? Project,
+                    DateTime DueDate,
+                    List<ApplicationUser?> Assignees,
+                    List<(string Title, bool IsCompleted)>? SubTasks
+                )>
                 {
-                    var task1 = new TaskItem
-                    {
-                        Title = "Design new dashboard wireframes",
-                        Description = "Create high-fidelity wireframes.",
-                        Status = TaskItemStatus.Completed,
-                        Priority = TaskPriority.High,
-                        ProjectId = proj1.Id,
-                        CreatedById = adminUser.Id,
-                        DueDate = DateTime.UtcNow.AddDays(-10),
-                        Assignees = devJames != null ? new List<TaskAssignee> { new TaskAssignee { UserId = devJames.Id } } : new List<TaskAssignee>()
-                    };
-
-                    var task2 = new TaskItem
-                    {
-                        Title = "Implement authentication middleware",
-                        Description = "JWT validation logic.",
-                        Status = TaskItemStatus.Completed,
-                        Priority = TaskPriority.Urgent,
-                        ProjectId = proj2.Id,
-                        CreatedById = adminUser.Id,
-                        DueDate = DateTime.UtcNow.AddDays(-15),
-                        Assignees = devPriya != null ? new List<TaskAssignee> { new TaskAssignee { UserId = devPriya.Id } } : new List<TaskAssignee>()
-                    };
-
-                    var task3 = new TaskItem
-                    {
-                        Title = "Responsive mobile layout",
-                        Description = "Ensure mobile responsive design.",
-                        Status = TaskItemStatus.InProgress,
-                        Priority = TaskPriority.Medium,
-                        ProjectId = proj1.Id,
-                        CreatedById = adminUser.Id,
-                        DueDate = DateTime.UtcNow.AddDays(10),
-                        Assignees = devJames != null ? new List<TaskAssignee> { new TaskAssignee { UserId = devJames.Id } } : new List<TaskAssignee>(),
-                        SubTasks = new List<SubTask>
+                    (
+                        "Design new dashboard wireframes",
+                        "Create high-fidelity wireframes for the updated admin dashboard layout.",
+                        TaskItemStatus.Completed,
+                        TaskPriority.High,
+                        proj1,
+                        DateTime.UtcNow.AddDays(-10),
+                        new List<ApplicationUser?> { devJames },
+                        null
+                    ),
+                    (
+                        "Implement authentication middleware",
+                        "JWT validation and refresh token logic for all API routes.",
+                        TaskItemStatus.Completed,
+                        TaskPriority.Urgent,
+                        proj2,
+                        DateTime.UtcNow.AddDays(-15),
+                        new List<ApplicationUser?> { devPriya },
+                        null
+                    ),
+                    (
+                        "Build rate limiting service",
+                        "Per-client API rate limiting with configurable thresholds and Redis backing.",
+                        TaskItemStatus.Assigned,
+                        TaskPriority.High,
+                        proj2,
+                        DateTime.UtcNow.AddDays(10),
+                        new List<ApplicationUser?> { devPriya, devDavid },
+                        new List<(string, bool)>
                         {
-                            new SubTask { Title = "Audit current breakpoint behavior", IsCompleted = true },
-                            new SubTask { Title = "Implement responsive nav drawer", IsCompleted = true },
-                            new SubTask { Title = "Fix table overflow on mobile", IsCompleted = false }
+                            ("Design Redis schema", true),
+                            ("Implement token bucket algorithm", false),
+                            ("Write unit tests for sliding window", false)
                         }
-                    };
+                    ),
+                    (
+                        "Responsive mobile layout",
+                        "Ensure all portal views are fully responsive down to 375px viewport.",
+                        TaskItemStatus.Assigned,
+                        TaskPriority.Medium,
+                        proj1,
+                        DateTime.UtcNow.AddDays(15),
+                        new List<ApplicationUser?> { devJames },
+                        new List<(string, bool)>
+                        {
+                            ("Audit current breakpoint behavior", true),
+                            ("Implement responsive nav drawer", true),
+                            ("Fix table overflow on mobile", false),
+                            ("Test on iOS Safari and Chrome Android", false)
+                        }
+                    ),
+                    (
+                        "Document upload workflow",
+                        "Secure drag-and-drop document upload with virus scan and S3 storage.",
+                        TaskItemStatus.Review,
+                        TaskPriority.High,
+                        proj3,
+                        DateTime.UtcNow.AddDays(-5),
+                        new List<ApplicationUser?> { devLucas },
+                        null
+                    ),
+                    (
+                        "Onboarding email triggers",
+                        "Automated email sequence for new hire steps with configurable delays.",
+                        TaskItemStatus.Assigned,
+                        TaskPriority.Medium,
+                        proj3,
+                        DateTime.UtcNow.AddDays(5),
+                        new List<ApplicationUser?> { devLucas },
+                        null
+                    ),
+                    (
+                        "API gateway load testing",
+                        "Run k6 load tests up to 10k concurrent requests and document results.",
+                        TaskItemStatus.Assigned,
+                        TaskPriority.Urgent,
+                        proj2,
+                        DateTime.UtcNow.AddDays(18),
+                        new List<ApplicationUser?> { devMarco },
+                        null
+                    ),
+                    (
+                        "EU GDPR compliance audit",
+                        "Full review of data processing flows against GDPR Article 30 requirements.",
+                        TaskItemStatus.Assigned,
+                        TaskPriority.High,
+                        proj5,
+                        DateTime.UtcNow.AddDays(30),
+                        new List<ApplicationUser?> { devDavid },
+                        null
+                    ),
+                    (
+                        "Customer portal SSO integration",
+                        "SAML 2.0 SSO with Apex's existing identity provider.",
+                        TaskItemStatus.Assigned,
+                        TaskPriority.Urgent,
+                        proj1,
+                        DateTime.UtcNow.AddDays(20),
+                        new List<ApplicationUser?> { devJames, devPriya },
+                        new List<(string, bool)>
+                        {
+                            ("Configure SAML metadata endpoints", true),
+                            ("Handle assertion consumer service", false),
+                            ("Test attribute mapping with IdP", false)
+                        }
+                    ),
+                    (
+                        "Set up CI/CD pipeline",
+                        "GitHub Actions pipeline with staging and production deployment gates.",
+                        TaskItemStatus.Completed,
+                        TaskPriority.High,
+                        proj2,
+                        DateTime.UtcNow.AddDays(-20),
+                        new List<ApplicationUser?> { devMarco },
+                        null
+                    )
+                };
 
-                    await context.TaskItems.AddRangeAsync(task1, task2, task3);
+                foreach (var def in taskDefs)
+                {
+                    if (def.Project == null) continue;
+
+                    var existingTask = await context.TaskItems
+                        .Include(t => t.Assignees)
+                        .Include(t => t.SubTasks)
+                        .AsSplitQuery()
+                        .FirstOrDefaultAsync(t => t.Title == def.Title);
+
+                    if (existingTask == null)
+                    {
+                        var newTask = new TaskItem
+                        {
+                            Title = def.Title,
+                            Description = def.Description,
+                            Status = def.Status,
+                            Priority = def.Priority,
+                            ProjectId = def.Project.Id,
+                            CreatedById = adminUser.Id,
+                            DueDate = def.DueDate,
+                            CreatedAt = DateTime.UtcNow.AddDays(-20),
+                            Assignees = def.Assignees
+                                .Where(u => u != null)
+                                .Select(u => new TaskAssignee { UserId = u!.Id })
+                                .ToList(),
+                            SubTasks = def.SubTasks?
+                                .Select(st => new SubTask { Title = st.Title, IsCompleted = st.IsCompleted })
+                                .ToList() ?? new List<SubTask>()
+                        };
+                        await context.TaskItems.AddAsync(newTask);
+                    }
+                    else
+                    {
+                        foreach (var u in def.Assignees.Where(u => u != null))
+                        {
+                            if (!existingTask.Assignees.Any(a => a.UserId == u!.Id))
+                            {
+                                existingTask.Assignees.Add(new TaskAssignee { UserId = u!.Id });
+                            }
+                        }
+
+                        if (def.SubTasks != null && !existingTask.SubTasks.Any())
+                        {
+                            foreach (var st in def.SubTasks)
+                            {
+                                existingTask.SubTasks.Add(new SubTask { Title = st.Title, IsCompleted = st.IsCompleted });
+                            }
+                        }
+                    }
+                }
+                await context.SaveChangesAsync();
+            }
+
+            // Seed Comments
+            if (!await context.Comments.AnyAsync() && adminUser != null)
+            {
+                var taskMobile = await context.TaskItems.FirstOrDefaultAsync(t => t.Title == "Responsive mobile layout");
+                var taskRate = await context.TaskItems.FirstOrDefaultAsync(t => t.Title == "Build rate limiting service");
+                var taskSso = await context.TaskItems.FirstOrDefaultAsync(t => t.Title == "Customer portal SSO integration");
+
+                var comments = new List<Comment>();
+                if (taskMobile != null && devJames != null)
+                {
+                    comments.Add(new Comment
+                    {
+                        TaskItemId = taskMobile.Id,
+                        UserId = devJames.Id,
+                        Content = "Mobile nav drawer complete, now focusing on table overflow on mobile viewports.",
+                        CreatedAt = DateTime.UtcNow.AddDays(-2)
+                    });
+                    comments.Add(new Comment
+                    {
+                        TaskItemId = taskMobile.Id,
+                        UserId = adminUser.Id,
+                        Content = "Great progress! Make sure to test on smaller iPhone SE screens as well.",
+                        CreatedAt = DateTime.UtcNow.AddDays(-2).AddHours(1)
+                    });
+                }
+                if (taskRate != null && devPriya != null)
+                {
+                    comments.Add(new Comment
+                    {
+                        TaskItemId = taskRate.Id,
+                        UserId = devPriya.Id,
+                        Content = "Redis cluster configuration is verified in staging.",
+                        CreatedAt = DateTime.UtcNow.AddDays(-4)
+                    });
+                }
+                if (taskSso != null && devJames != null)
+                {
+                    comments.Add(new Comment
+                    {
+                        TaskItemId = taskSso.Id,
+                        UserId = devJames.Id,
+                        Content = "Waiting on Apex IT team to provide the SAML metadata XML.",
+                        CreatedAt = DateTime.UtcNow.AddDays(-3)
+                    });
+                }
+                if (comments.Any())
+                {
+                    await context.Comments.AddRangeAsync(comments);
                     await context.SaveChangesAsync();
                 }
             }

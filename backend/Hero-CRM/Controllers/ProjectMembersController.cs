@@ -4,12 +4,14 @@ using Application.Repos_Interfaces;
 using Domain.Entities.Identity;
 using Domain.Entities.Projects;
 using Infrastructure._Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/Projects/{projectId:int}/members")]
     public class ProjectMembersController : ControllerBase

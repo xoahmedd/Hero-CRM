@@ -3,29 +3,26 @@ using Application.DTOs.Collaborations.Notification;
 using Application.Repos_Interfaces;
 using AutoMapper;
 using Domain.Entities.Collaborations;
-using Domain.Entities.Identity;
 using Domain.Enums;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class NotificationsController : ControllerBase
     {
         private readonly IGenericRepository<Notification> _notificationRepo;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMapper _mapper;
 
         public NotificationsController(
             IGenericRepository<Notification> notificationRepo,
-            UserManager<ApplicationUser> userManager,
             IMapper mapper)
         {
             _notificationRepo = notificationRepo;
-            _userManager = userManager;
             _mapper = mapper;
         }
 
@@ -87,44 +84,6 @@ namespace Hero_CRM.Controllers
             return Ok(response);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<NotificationResponse>> CreateNotification(CreateNotificationRequest request)
-        {
-            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-
-            if (user == null || !user.IsActive)
-            {
-                return BadRequest(new
-                {
-                    message = "User not found or inactive."
-                });
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Title) ||
-                string.IsNullOrWhiteSpace(request.Message))
-            {
-                return BadRequest(new
-                {
-                    message = "Title and message are required."
-                });
-            }
-
-            var notification = new Notification
-            {
-                UserId = request.UserId,
-                Title = request.Title.Trim(),
-                Message = request.Message.Trim(),
-                Type = request.Type,
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _notificationRepo.AddAsync(notification);
-            await _notificationRepo.SaveChangesAsync();
-
-            var response = _mapper.Map<NotificationResponse>(notification);
-            return Ok(response);
-        }
 
         [HttpPatch("{id:int}/read")]
         public async Task<IActionResult> MarkAsRead(int id)

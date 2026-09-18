@@ -9,6 +9,7 @@ namespace Application.DTOs.Users
         public string Email { get; set; } = string.Empty;
         public string? ProfileImage { get; set; }
         public bool IsActive { get; set; }
+        public string Role { get; set; } = "Developer";
         public DateTime CreatedAt { get; set; }
     }
 }

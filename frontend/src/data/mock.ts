@@ -1,7 +1,7 @@
-export type Role = "Admin" | "Developer" | "DepartmentUser";
-export type ProjectStatus = "Planning" | "Working" | "Overdue" | "Finished" | "Submitted" | "Rejected";
+export type Role = "Admin" | "Developer";
+export type ProjectStatus = "Planning" | "Working" | "Overdue" | "Finished";
 export type Priority = "Low" | "Medium" | "High" | "Urgent";
-export type TaskStatus = "Todo" | "InProgress" | "Review" | "Completed" | "Cancelled";
+export type TaskStatus = "Assigned" | "Review" | "Completed" | "Cancelled";
 export type CustomerStatus = "Lead" | "Active" | "Inactive" | "Archived";
 export type NotificationType = "ProjectAssigned" | "TaskAssigned" | "DeadlineApproaching" | "DeadlineMissed";
 
@@ -103,7 +103,7 @@ export const MOCK_USERS: User[] = [
   { id: 4, fullName: "Lucas Rivera", email: "lucas.rivera@herocrm.com", role: "Developer", avatar: "LR", isActive: true, createdAt: "2025-04-05" },
   { id: 5, fullName: "Elena Volkov", email: "elena.volkov@herocrm.com", role: "Developer", avatar: "EV", isActive: false, createdAt: "2025-05-18" },
   { id: 6, fullName: "David Park", email: "david.park@herocrm.com", role: "Developer", avatar: "DP", isActive: true, createdAt: "2025-06-22" },
-  { id: 7, fullName: "Aisha Nwosu", email: "aisha.nwosu@herocrm.com", role: "DepartmentUser", avatar: "AN", isActive: true, createdAt: "2025-07-01" },
+  { id: 7, fullName: "Aisha Nwosu", email: "aisha.nwosu@herocrm.com", role: "Developer", avatar: "AN", isActive: true, createdAt: "2025-07-01" },
   { id: 8, fullName: "Marco Ferretti", email: "marco.ferretti@herocrm.com", role: "Developer", avatar: "MF", isActive: true, createdAt: "2025-08-14" },
 ];
 
@@ -123,21 +123,21 @@ export const MOCK_PROJECTS: Project[] = [
   { id: 3, name: "HR Onboarding Automation", description: "Automated onboarding workflow platform for new hire documentation and approvals.", status: "Overdue", priority: "Medium", startDate: "2026-05-01", dueDate: "2026-08-31", ownerId: 4, ownerName: "Lucas Rivera", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "Human Resources", missedDeadlineReason: null, reasonCategory: null, progress: 45 },
   { id: 4, name: "Meridian Compliance Dashboard", description: "Real-time compliance monitoring and reporting dashboard for financial regulations.", status: "Finished", priority: "High", startDate: "2026-03-01", dueDate: "2026-07-15", ownerId: 2, ownerName: "James Okafor", customerId: 4, customerName: "Meridian Financial", requestingDepartment: "Legal", missedDeadlineReason: null, reasonCategory: null, progress: 100 },
   { id: 5, name: "EuroRetail Market Expansion", description: "Platform localization and EU compliance for 3 new regional market launches.", status: "Planning", priority: "High", startDate: "2026-09-20", dueDate: "2026-12-31", ownerId: 6, ownerName: "David Park", customerId: 5, customerName: "EuroRetail Group", requestingDepartment: "Sales", missedDeadlineReason: null, reasonCategory: null, progress: 8 },
-  { id: 6, name: "Quantum Analytics Data Pipeline", description: "ETL pipeline and warehousing solution for large-scale analytics ingestion.", status: "Submitted", priority: "Medium", startDate: "", dueDate: "2026-11-30", ownerId: 0, ownerName: "", customerId: 6, customerName: "Quantum Analytics", requestingDepartment: "Data Science", missedDeadlineReason: null, reasonCategory: null, progress: 0, requestedBy: "Aisha Nwosu", businessJustification: "Reduce data latency by 80% to enable real-time decision making." },
-  { id: 7, name: "SkyBridge Fleet Tracker", description: "GPS-integrated fleet management and route optimization system.", status: "Submitted", priority: "High", startDate: "", dueDate: "2026-10-01", ownerId: 0, ownerName: "", customerId: 3, customerName: "SkyBridge Logistics", requestingDepartment: "Operations", missedDeadlineReason: null, reasonCategory: null, progress: 0, requestedBy: "Aisha Nwosu", businessJustification: "Cut fuel costs by 20% through optimized routing." },
+  { id: 6, name: "Quantum Analytics Data Pipeline", description: "ETL pipeline and warehousing solution for large-scale analytics ingestion.", status: "Planning", priority: "Medium", startDate: "2026-10-01", dueDate: "2026-11-30", ownerId: 6, ownerName: "David Park", customerId: 6, customerName: "Quantum Analytics", requestingDepartment: "Data Science", missedDeadlineReason: null, reasonCategory: null, progress: 15 },
+  { id: 7, name: "SkyBridge Fleet Tracker", description: "GPS-integrated fleet management and route optimization system.", status: "Planning", priority: "High", startDate: "2026-09-01", dueDate: "2026-10-01", ownerId: 4, ownerName: "Lucas Rivera", customerId: 3, customerName: "SkyBridge Logistics", requestingDepartment: "Operations", missedDeadlineReason: null, reasonCategory: null, progress: 20 },
   { id: 8, name: "Internal Knowledge Base", description: "Wiki-style internal knowledge base with search, versioning, and access control.", status: "Finished", priority: "Low", startDate: "2026-02-01", dueDate: "2026-06-30", ownerId: 8, ownerName: "Marco Ferretti", customerId: 1, customerName: "Apex Dynamics", requestingDepartment: "IT", missedDeadlineReason: null, reasonCategory: null, progress: 100 },
 ];
 
 export const MOCK_TASKS: Task[] = [
   { id: 1, title: "Design new dashboard wireframes", description: "Create high-fidelity wireframes for the updated admin dashboard layout.", status: "Completed", priority: "High", projectId: 1, projectName: "Apex CRM Portal Redesign", assignees: [{ id: 2, name: "James Okafor", avatar: "JO" }], createdById: 1, dueDate: "2026-07-20", createdAt: "2026-07-05" },
   { id: 2, title: "Implement authentication middleware", description: "JWT validation and refresh token logic for all API routes.", status: "Completed", priority: "Urgent", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 3, name: "Priya Mehta", avatar: "PM" }], createdById: 1, dueDate: "2026-07-10", createdAt: "2026-06-20" },
-  { id: 3, title: "Build rate limiting service", description: "Per-client API rate limiting with configurable thresholds and Redis backing.", status: "InProgress", priority: "High", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 3, name: "Priya Mehta", avatar: "PM" }, { id: 6, name: "David Park", avatar: "DP" }], createdById: 1, dueDate: "2026-09-20", createdAt: "2026-08-01" },
-  { id: 4, title: "Responsive mobile layout", description: "Ensure all portal views are fully responsive down to 375px viewport.", status: "InProgress", priority: "Medium", projectId: 1, projectName: "Apex CRM Portal Redesign", assignees: [{ id: 2, name: "James Okafor", avatar: "JO" }], createdById: 1, dueDate: "2026-09-25", createdAt: "2026-08-15" },
+  { id: 3, title: "Build rate limiting service", description: "Per-client API rate limiting with configurable thresholds and Redis backing.", status: "Assigned", priority: "High", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 3, name: "Priya Mehta", avatar: "PM" }, { id: 6, name: "David Park", avatar: "DP" }], createdById: 1, dueDate: "2026-09-20", createdAt: "2026-08-01" },
+  { id: 4, title: "Responsive mobile layout", description: "Ensure all portal views are fully responsive down to 375px viewport.", status: "Assigned", priority: "Medium", projectId: 1, projectName: "Apex CRM Portal Redesign", assignees: [{ id: 2, name: "James Okafor", avatar: "JO" }], createdById: 1, dueDate: "2026-09-25", createdAt: "2026-08-15" },
   { id: 5, title: "Document upload workflow", description: "Secure drag-and-drop document upload with virus scan and S3 storage.", status: "Review", priority: "High", projectId: 3, projectName: "HR Onboarding Automation", assignees: [{ id: 4, name: "Lucas Rivera", avatar: "LR" }], createdById: 1, dueDate: "2026-08-28", createdAt: "2026-07-01" },
-  { id: 6, title: "Onboarding email triggers", description: "Automated email sequence for new hire steps with configurable delays.", status: "Todo", priority: "Medium", projectId: 3, projectName: "HR Onboarding Automation", assignees: [{ id: 4, name: "Lucas Rivera", avatar: "LR" }], createdById: 1, dueDate: "2026-09-15", createdAt: "2026-08-05" },
-  { id: 7, title: "API gateway load testing", description: "Run k6 load tests up to 10k concurrent requests and document results.", status: "Todo", priority: "Urgent", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 8, name: "Marco Ferretti", avatar: "MF" }], createdById: 1, dueDate: "2026-09-28", createdAt: "2026-09-01" },
-  { id: 8, title: "EU GDPR compliance audit", description: "Full review of data processing flows against GDPR Article 30 requirements.", status: "Todo", priority: "High", projectId: 5, projectName: "EuroRetail Market Expansion", assignees: [{ id: 6, name: "David Park", avatar: "DP" }], createdById: 1, dueDate: "2026-10-10", createdAt: "2026-09-10" },
-  { id: 9, title: "Customer portal SSO integration", description: "SAML 2.0 SSO with Apex's existing identity provider.", status: "InProgress", priority: "Urgent", projectId: 1, projectName: "Apex CRM Portal Redesign", assignees: [{ id: 2, name: "James Okafor", avatar: "JO" }, { id: 3, name: "Priya Mehta", avatar: "PM" }], createdById: 1, dueDate: "2026-10-01", createdAt: "2026-08-20" },
+  { id: 6, title: "Onboarding email triggers", description: "Automated email sequence for new hire steps with configurable delays.", status: "Assigned", priority: "Medium", projectId: 3, projectName: "HR Onboarding Automation", assignees: [{ id: 4, name: "Lucas Rivera", avatar: "LR" }], createdById: 1, dueDate: "2026-09-15", createdAt: "2026-08-05" },
+  { id: 7, title: "API gateway load testing", description: "Run k6 load tests up to 10k concurrent requests and document results.", status: "Assigned", priority: "Urgent", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 8, name: "Marco Ferretti", avatar: "MF" }], createdById: 1, dueDate: "2026-09-28", createdAt: "2026-09-01" },
+  { id: 8, title: "EU GDPR compliance audit", description: "Full review of data processing flows against GDPR Article 30 requirements.", status: "Assigned", priority: "High", projectId: 5, projectName: "EuroRetail Market Expansion", assignees: [{ id: 6, name: "David Park", avatar: "DP" }], createdById: 1, dueDate: "2026-10-10", createdAt: "2026-09-10" },
+  { id: 9, title: "Customer portal SSO integration", description: "SAML 2.0 SSO with Apex's existing identity provider.", status: "Assigned", priority: "Urgent", projectId: 1, projectName: "Apex CRM Portal Redesign", assignees: [{ id: 2, name: "James Okafor", avatar: "JO" }, { id: 3, name: "Priya Mehta", avatar: "PM" }], createdById: 1, dueDate: "2026-10-01", createdAt: "2026-08-20" },
   { id: 10, title: "Set up CI/CD pipeline", description: "GitHub Actions pipeline with staging and production deployment gates.", status: "Completed", priority: "High", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 8, name: "Marco Ferretti", avatar: "MF" }], createdById: 1, dueDate: "2026-07-30", createdAt: "2026-06-25" },
 ];
 
@@ -148,13 +148,17 @@ export const MOCK_SUBTASKS: SubTask[] = [
   { id: 4, taskId: 4, title: "Test on iOS Safari and Chrome Android", isCompleted: false },
   { id: 5, taskId: 3, title: "Design Redis schema", isCompleted: true },
   { id: 6, taskId: 3, title: "Implement token bucket algorithm", isCompleted: false },
-  { id: 7, taskId: 3, title: "Add per-route override config", isCompleted: false },
+  { id: 7, taskId: 3, title: "Write unit tests for sliding window", isCompleted: false },
+  { id: 8, taskId: 9, title: "Configure SAML metadata endpoints", isCompleted: true },
+  { id: 9, taskId: 9, title: "Handle assertion consumer service", isCompleted: false },
+  { id: 10, taskId: 9, title: "Test attribute mapping with IdP", isCompleted: false },
 ];
 
 export const MOCK_COMMENTS: Comment[] = [
-  { id: 1, taskId: 4, authorId: 1, authorName: "Sarah Chen", authorAvatar: "SC", content: "Let's prioritize tablet breakpoints first since most users are on iPads.", createdAt: "2026-08-16T09:22:00Z" },
-  { id: 2, taskId: 4, authorId: 2, authorName: "James Okafor", authorAvatar: "JO", content: "Agreed. I'll start with the dashboard grid collapse. Should be done by EOD.", createdAt: "2026-08-16T10:45:00Z" },
-  { id: 3, taskId: 3, authorId: 3, authorName: "Priya Mehta", authorAvatar: "PM", content: "Redis cluster is provisioned in staging. Starting implementation now.", createdAt: "2026-09-02T14:10:00Z" },
+  { id: 1, taskId: 4, authorId: 2, authorName: "James Okafor", authorAvatar: "JO", content: "Mobile nav drawer complete, now focusing on table overflow on mobile viewports.", createdAt: "2026-09-10T14:30:00Z" },
+  { id: 2, taskId: 4, authorId: 1, authorName: "Sarah Chen", authorAvatar: "SC", content: "Great progress! Make sure to test on smaller iPhone SE screens as well.", createdAt: "2026-09-10T15:15:00Z" },
+  { id: 3, taskId: 3, authorId: 3, authorName: "Priya Mehta", authorAvatar: "PM", content: "Redis cluster configuration is verified in staging.", createdAt: "2026-09-08T11:00:00Z" },
+  { id: 4, taskId: 9, authorId: 2, authorName: "James Okafor", authorAvatar: "JO", content: "Waiting on Apex IT team to provide the SAML metadata XML.", createdAt: "2026-09-09T09:45:00Z" },
 ];
 
 export const MOCK_NOTIFICATIONS: Notification[] = [
@@ -207,7 +211,7 @@ export const REPORTS_DATA = {
   generatedAt: "2026-09-12T19:00:00Z",
   months: 6,
   summary: { totalCustomers: 7, totalProjects: 8, activeProjects: 2, totalTasks: 10, completedTasks: 3, pendingTasks: 3, overdueTasks: 1, totalUsers: 8, taskCompletionRate: 30 },
-  taskStatus: [{ name: "Completed", count: 3 }, { name: "InProgress", count: 3 }, { name: "Review", count: 1 }, { name: "Todo", count: 3 }],
+  taskStatus: [{ name: "Completed", count: 3 }, { name: "Assigned", count: 6 }, { name: "Review", count: 1 }],
   taskPriority: [{ name: "Urgent", count: 3 }, { name: "High", count: 4 }, { name: "Medium", count: 2 }, { name: "Low", count: 1 }],
   projectStatus: [{ name: "Working", count: 2 }, { name: "Finished", count: 2 }, { name: "Overdue", count: 1 }, { name: "Planning", count: 1 }, { name: "Submitted", count: 2 }],
   customerStatus: [{ name: "Active", count: 3 }, { name: "Lead", count: 2 }, { name: "Inactive", count: 1 }, { name: "Archived", count: 1 }],

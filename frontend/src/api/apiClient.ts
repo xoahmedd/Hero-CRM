@@ -15,8 +15,10 @@ export class ApiError extends Error {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
+  const token = typeof window !== "undefined" ? localStorage.getItem("hero_crm_token") : null;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string>),
   };
 
@@ -32,7 +34,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     } catch {
       errorData = null;
     }
-    const message = errorData?.message || `HTTP ${response.status}: ${response.statusText}`;
+    let message = errorData?.message;
+    if (!message && errorData?.errors) {
+      if (Array.isArray(errorData.errors)) {
+        message = errorData.errors.join(" ");
+      } else if (typeof errorData.errors === "object") {
+        message = Object.values(errorData.errors).flat().join(" ");
+      }
+    }
+    if (response.status === 401) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("hero_crm_token");
+      }
+      if (!message) {
+        message = "Session expired or invalid credentials. Please sign out and sign back in.";
+      }
+    } else if (!message) {
+      message = `HTTP ${response.status}: ${response.statusText}`;
+    }
     throw new ApiError(message, response.status, errorData);
   }
 

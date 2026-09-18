@@ -5,12 +5,14 @@ using AutoMapper;
 using Domain.Entities.Identity;
 using Domain.Entities.Teams;
 using Infrastructure._Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hero_CRM.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class TeamsController : ControllerBase
@@ -76,6 +78,7 @@ namespace Hero_CRM.Controllers
             return Ok(list);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<TeamResponse>> CreateTeam(CreateTeamRequest request)
         {
@@ -169,6 +172,7 @@ namespace Hero_CRM.Controllers
             return Ok(responses);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("{teamId:int}/members/{userId:int}")]
         public async Task<IActionResult> AddMember(int teamId, int userId)
         {
@@ -218,6 +222,7 @@ namespace Hero_CRM.Controllers
             });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{teamId:int}/members/{userId:int}")]
         public async Task<IActionResult> RemoveMember(int teamId, int userId)
         {

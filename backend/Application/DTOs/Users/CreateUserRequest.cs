@@ -19,5 +19,6 @@ namespace Application.DTOs.Users
         public string? ProfileImage { get; set; }
 
         public bool IsActive { get; set; } = true;
+        public string? Role { get; set; }
     }
 }
