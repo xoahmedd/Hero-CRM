@@ -13,6 +13,7 @@ using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure._Data;
 
@@ -99,15 +100,49 @@ namespace Hero_CRM.Controllers
             }
 
             // Calculate completion percentage: completed tasks / total tasks (assigned, review, completed), ignoring cancelled
-            var projectTasks = await _context.TaskItems
+            var allTasks = await _context.TaskItems
                 .AsNoTracking()
-                .Where(t => t.ProjectId == project.Id && t.Status != TaskItemStatus.Cancelled)
+                .Where(t => t.ProjectId == project.Id)
                 .Select(t => t.Status)
                 .ToListAsync();
 
-            var totalTasks = projectTasks.Count;
-            var completedTasks = projectTasks.Count(s => s == TaskItemStatus.Completed);
+            var nonCancelledTasks = allTasks.Where(s => s != TaskItemStatus.Cancelled).ToList();
+            var totalTasks = nonCancelledTasks.Count;
+            var completedTasks = nonCancelledTasks.Count(s => s == TaskItemStatus.Completed);
             response.Progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
+
+            // Auto-sync project status if tasks exist
+            if (allTasks.Count > 0)
+            {
+                bool hasCompleted = allTasks.Any(s => s == TaskItemStatus.Completed);
+                bool allTasksCompletedOrCancelled = allTasks.All(s => s == TaskItemStatus.Completed || s == TaskItemStatus.Cancelled);
+                bool isAutoFinished = hasCompleted && allTasksCompletedOrCancelled;
+
+                if (isAutoFinished && project.Status != ProjectStatus.Finished)
+                {
+                    project.Status = ProjectStatus.Finished;
+                    response.Status = ProjectStatus.Finished;
+                    var dbProj = await _context.Projects.FindAsync(project.Id);
+                    if (dbProj != null && dbProj.Status != ProjectStatus.Finished)
+                    {
+                        dbProj.Status = ProjectStatus.Finished;
+                        dbProj.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else if (!isAutoFinished && project.Status == ProjectStatus.Finished)
+                {
+                    project.Status = ProjectStatus.InProgress;
+                    response.Status = ProjectStatus.InProgress;
+                    var dbProj = await _context.Projects.FindAsync(project.Id);
+                    if (dbProj != null && dbProj.Status == ProjectStatus.Finished)
+                    {
+                        dbProj.Status = ProjectStatus.InProgress;
+                        dbProj.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
 
             return response;
         }
@@ -440,7 +475,8 @@ namespace Hero_CRM.Controllers
                 var isAssigned = await _projectRepo.GetQueryable()
                     .Where(p => p.Id == id && (
                         p.OwnerId == userId ||
-                        p.Members.Any(m => m.UserId == userId)))
+                        p.Members.Any(m => m.UserId == userId) ||
+                        p.Tasks.Any(t => t.Assignees.Any(ta => ta.UserId == userId))))
                     .AnyAsync();
 
                 if (!isAssigned)
@@ -450,7 +486,7 @@ namespace Hero_CRM.Controllers
             }
 
             project.MissedDeadlineReason = dto.Reason;
-            project.ReasonCategory = dto.Category;
+            project.ReasonCategory = null;
             project.UpdatedAt = DateTime.UtcNow;
 
             _projectRepo.Update(project);
@@ -512,9 +548,15 @@ namespace Hero_CRM.Controllers
                 });
             }
 
-            if (!IsAdmin && project.OwnerId != CurrentUserId)
+            if (!IsAdmin)
             {
-                return Forbid();
+                var userId = CurrentUserId;
+                var isAssigned = project.OwnerId == userId ||
+                    await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == id && pm.UserId == userId);
+                if (!isAssigned)
+                {
+                    return Forbid();
+                }
             }
 
             if (request.OwnerId.HasValue && request.OwnerId.Value > 0)
@@ -545,6 +587,10 @@ namespace Hero_CRM.Controllers
             var previousOwnerId = project.OwnerId;
 
             _mapper.Map(request, project);
+            if (!string.IsNullOrEmpty(request.ReasonCategory))
+            {
+                project.ReasonCategory = request.ReasonCategory;
+            }
             if (request.OwnerId.HasValue && request.OwnerId.Value > 0)
             {
                 project.OwnerId = request.OwnerId.Value;
@@ -594,9 +640,94 @@ namespace Hero_CRM.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            if (project.Status == ProjectStatus.Cancelled)
+            {
+                var tasksToCancel = await _context.TaskItems
+                    .Where(t => t.ProjectId == id && t.Status != TaskItemStatus.Cancelled)
+                    .ToListAsync();
+
+                foreach (var t in tasksToCancel)
+                {
+                    t.Status = TaskItemStatus.Cancelled;
+                    t.UpdatedAt = DateTime.UtcNow;
+                }
+                if (tasksToCancel.Any())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             return Ok(new
             {
                 message = "Project updated successfully."
+            });
+        }
+
+        // PATCH: api/Projects/5/status
+        [HttpPatch("{id:int}/status")]
+        public async Task<IActionResult> UpdateProjectStatus(
+            int id,
+            [FromQuery] ProjectStatus? status = null,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] UpdateProjectStatusDto? dto = null)
+        {
+            var targetStatus = dto?.Status ?? status;
+            if (!targetStatus.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message = "Status is required."
+                });
+            }
+
+            var project = await _projectRepo.GetByIdAsync(id);
+
+            if (project == null)
+            {
+                return NotFound(new
+                {
+                    message = "Project not found."
+                });
+            }
+
+            if (!IsAdmin)
+            {
+                var userId = CurrentUserId;
+                var isAssigned = project.OwnerId == userId ||
+                    await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == id && pm.UserId == userId);
+                if (!isAssigned)
+                {
+                    return Forbid();
+                }
+            }
+
+            project.Status = targetStatus.Value;
+            project.UpdatedAt = DateTime.UtcNow;
+
+            _projectRepo.Update(project);
+            await _projectRepo.SaveChangesAsync();
+
+            if (project.Status == ProjectStatus.Cancelled)
+            {
+                var tasksToCancel = await _context.TaskItems
+                    .Where(t => t.ProjectId == id && t.Status != TaskItemStatus.Cancelled)
+                    .ToListAsync();
+
+                foreach (var t in tasksToCancel)
+                {
+                    t.Status = TaskItemStatus.Cancelled;
+                    t.UpdatedAt = DateTime.UtcNow;
+                }
+                if (tasksToCancel.Any())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return Ok(new
+            {
+                message = "Project status updated successfully.",
+                projectId = id,
+                status = project.Status
             });
         }
 
@@ -623,5 +754,10 @@ namespace Hero_CRM.Controllers
                 message = "Project deleted successfully."
             });
         }
+    }
+
+    public class UpdateProjectStatusDto
+    {
+        public ProjectStatus? Status { get; set; }
     }
 }

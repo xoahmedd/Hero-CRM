@@ -33,6 +33,9 @@ namespace Application.DTOs.Projects
         [MaxLength(2000)]
         public string? MissedDeadlineReason { get; set; }
 
+        [MaxLength(100)]
+        public string? ReasonCategory { get; set; }
+
         public int? OwnerId { get; set; }
         public List<int>? MemberIds { get; set; }
     }

@@ -107,6 +107,45 @@ namespace Hero_CRM.Controllers
             return response;
         }
 
+        private async Task SyncProjectStatusAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null) return;
+
+            var tasks = await _context.TaskItems
+                .AsNoTracking()
+                .Where(t => t.ProjectId == projectId)
+                .Select(t => t.Status)
+                .ToListAsync();
+
+            if (!tasks.Any()) return;
+
+            bool hasCompleted = tasks.Any(s => s == TaskItemStatus.Completed);
+            bool allCompletedOrCancelled = tasks.All(s => s == TaskItemStatus.Completed || s == TaskItemStatus.Cancelled);
+            bool isAutoFinished = hasCompleted && allCompletedOrCancelled;
+
+            if (isAutoFinished)
+            {
+                if (project.Status != ProjectStatus.Finished)
+                {
+                    project.Status = ProjectStatus.Finished;
+                    project.UpdatedAt = DateTime.UtcNow;
+                    _projectRepo.Update(project);
+                    await _projectRepo.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                if (project.Status == ProjectStatus.Finished)
+                {
+                    project.Status = ProjectStatus.InProgress;
+                    project.UpdatedAt = DateTime.UtcNow;
+                    _projectRepo.Update(project);
+                    await _projectRepo.SaveChangesAsync();
+                }
+            }
+        }
+
         // GET: api/Tasks
         [HttpGet]
         public async Task<IActionResult> GetTasks(
@@ -469,6 +508,8 @@ namespace Hero_CRM.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            await SyncProjectStatusAsync(task.ProjectId);
+
             var response = await MapToResponseAsync(task);
             response.ProjectName = project.Name;
             response.CreatedByName = creator.FullName;
@@ -572,6 +613,8 @@ namespace Hero_CRM.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            await SyncProjectStatusAsync(task.ProjectId);
+
             var updatedResponse = await MapToResponseAsync(task);
 
             return Ok(new
@@ -601,8 +644,10 @@ namespace Hero_CRM.Controllers
                 });
             }
 
+            var projectId = task.ProjectId;
             _taskRepo.Delete(task);
             await _taskRepo.SaveChangesAsync();
+            await SyncProjectStatusAsync(projectId);
 
             return Ok(new
             {
@@ -929,6 +974,7 @@ namespace Hero_CRM.Controllers
 
             _taskRepo.Update(task);
             await _taskRepo.SaveChangesAsync();
+            await SyncProjectStatusAsync(task.ProjectId);
 
             // Notify on status transition
             try

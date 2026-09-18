@@ -80,7 +80,7 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
     if (!showReasonItem) return;
     try {
       if (showReasonItem.type === "Project") {
-        await projectsApi.submitMissedReason(showReasonItem.id, reasonForm.reason, reasonForm.category);
+        await projectsApi.submitMissedReason(showReasonItem.id, reasonForm.reason);
         const projs = await projectsApi.getProjects();
         setProjectsList(projs);
       } else {
@@ -272,16 +272,18 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
                 </div>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
-                Category
-              </label>
-              <Select
-                value={reasonForm.category}
-                onChange={(v) => setReasonForm((f) => ({ ...f, category: v }))}
-                options={REASON_CATEGORIES.map((c) => ({ value: c, label: c }))}
-              />
-            </div>
+            {showReasonItem.type === "Task" && (
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
+                  Category
+                </label>
+                <Select
+                  value={reasonForm.category}
+                  onChange={(v) => setReasonForm((f) => ({ ...f, category: v }))}
+                  options={REASON_CATEGORIES.map((c) => ({ value: c, label: c }))}
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
                 Delay Justification

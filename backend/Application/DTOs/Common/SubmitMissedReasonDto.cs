@@ -5,7 +5,7 @@ namespace Application.DTOs.Common
     public class SubmitMissedReasonDto
     {
         [MaxLength(100)]
-        public string Category { get; set; } = "Other";
+        public string? Category { get; set; } = null;
 
         [Required]
         [MaxLength(2000)]

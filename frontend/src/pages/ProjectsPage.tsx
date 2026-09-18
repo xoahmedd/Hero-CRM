@@ -45,6 +45,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
   // Modals
   const [showCreate, setShowCreate] = useState(false);
   const [showReason, setShowReason] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   // Create form state
   const [createForm, setCreateForm] = useState<{
@@ -67,10 +68,32 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     requestingDepartment: "Engineering",
   });
 
+  // Edit form state
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    description: string;
+    status: ProjectStatus;
+    priority: Priority;
+    startDate: string;
+    dueDate: string;
+    memberIds: number[];
+    requestingDepartment: string;
+    missedDeadlineReason: string;
+  }>({
+    name: "",
+    description: "",
+    status: "In Progress",
+    priority: "Medium",
+    startDate: "",
+    dueDate: "",
+    memberIds: [],
+    requestingDepartment: "Engineering",
+    missedDeadlineReason: "",
+  });
+
   // Reason form
   const [reasonForm, setReasonForm] = useState({
     reason: "",
-    category: "Resource Constraints",
   });
 
   const isAdmin = currentUser.role === "Admin";
@@ -149,10 +172,86 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     });
   }
 
+  function handleOpenEditModal(project: Project) {
+    setEditingProject(project);
+    const memberIds = project.members?.map((m) => m.userId) || project.memberIds || [];
+    setEditForm({
+      name: project.name,
+      description: project.description || "",
+      status: (project.status || "In Progress") as ProjectStatus,
+      priority: (project.priority || "Medium") as Priority,
+      startDate: project.startDate ? project.startDate.split("T")[0] : "",
+      dueDate: project.dueDate ? project.dueDate.split("T")[0] : "",
+      memberIds: memberIds.length > 0 ? memberIds : [project.ownerId],
+      requestingDepartment: project.requestingDepartment || "Engineering",
+      missedDeadlineReason: project.missedDeadlineReason || "",
+    });
+  }
+
+  async function handleSaveEdit() {
+    if (!editingProject) return;
+    if (editForm.memberIds.length === 0) {
+      alert("Please select at least one developer or admin.");
+      return;
+    }
+    try {
+      await projectsApi.updateProject(editingProject.id, {
+        name: editForm.name,
+        description: editForm.description,
+        status: editForm.status,
+        priority: editForm.priority,
+        startDate: editForm.startDate,
+        dueDate: editForm.dueDate,
+        memberIds: editForm.memberIds,
+        requestingDepartment: editForm.requestingDepartment,
+        missedDeadlineReason: editForm.missedDeadlineReason,
+        reasonCategory: null,
+      });
+      const updated = await projectsApi.getProjects();
+      setProjects(updated);
+    } catch {
+      const selectedDevs = usersList.filter((u) => editForm.memberIds.includes(u.id));
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === editingProject.id
+            ? {
+                ...p,
+                name: editForm.name,
+                description: editForm.description,
+                status: editForm.status,
+                priority: editForm.priority,
+                startDate: editForm.startDate,
+                dueDate: editForm.dueDate,
+                memberIds: editForm.memberIds,
+                ownerName: selectedDevs.map((d) => d.fullName).join(", "),
+                members: selectedDevs.map((d) => ({
+                  userId: d.id,
+                  fullName: d.fullName,
+                  email: d.email,
+                  avatar: d.avatar,
+                })),
+                requestingDepartment: editForm.requestingDepartment,
+                missedDeadlineReason: editForm.missedDeadlineReason || p.missedDeadlineReason,
+                reasonCategory: null,
+              }
+            : p
+        )
+      );
+    }
+    setEditingProject(null);
+  }
+
+  function handleOpenReasonModal(project: Project) {
+    setShowReason(project);
+    setReasonForm({
+      reason: project.missedDeadlineReason || "",
+    });
+  }
+
   async function handleSubmitReason() {
     if (!showReason) return;
     try {
-      await projectsApi.submitMissedReason(showReason.id, reasonForm.reason, reasonForm.category);
+      await projectsApi.submitMissedReason(showReason.id, reasonForm.reason);
       const updated = await projectsApi.getProjects();
       setProjects(updated);
     } catch {
@@ -162,14 +261,14 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
             ? {
                 ...p,
                 missedDeadlineReason: reasonForm.reason,
-                reasonCategory: reasonForm.category,
+                reasonCategory: null,
               }
             : p
         )
       );
     }
     setShowReason(null);
-    setReasonForm({ reason: "", category: "Resource Constraints" });
+    setReasonForm({ reason: "" });
   }
 
   const developers = usersList.filter((u) => u.role === "Developer" || u.role === "Admin");
@@ -238,8 +337,15 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
             return (
               <Card key={project.id} style={{ padding: 24 }}>
                 {isProjectOverdue && project.missedDeadlineReason && (
-                  <div className="mb-3 p-2.5 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800">
-                    ⚠️ Overdue — {project.reasonCategory || "Other"}: "{project.missedDeadlineReason}"
+                  <div className="mb-3 p-2.5 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between">
+                    <span>⚠️ Overdue: "{project.missedDeadlineReason}"</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReasonModal(project)}
+                      className="text-xs font-semibold underline ml-2 cursor-pointer hover:text-rose-950 flex-shrink-0"
+                    >
+                      Edit Reason
+                    </button>
                   </div>
                 )}
                 <div className="flex items-start justify-between mb-3">
@@ -335,13 +441,20 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" onClick={() => onViewProject(project.id)}>
                     View Details
                   </Button>
-                  {isAdmin && isProjectOverdue && !project.missedDeadlineReason && (
-                    <Button size="sm" variant="danger" onClick={() => setShowReason(project)}>
-                      Add Reason
+                  <Button size="sm" variant="secondary" onClick={() => handleOpenEditModal(project)}>
+                    Edit
+                  </Button>
+                  {isProjectOverdue && (
+                    <Button
+                      size="sm"
+                      variant={project.missedDeadlineReason ? "secondary" : "danger"}
+                      onClick={() => handleOpenReasonModal(project)}
+                    >
+                      {project.missedDeadlineReason ? "Edit Reason" : "Add Reason"}
                     </Button>
                   )}
                 </div>
@@ -514,29 +627,198 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
         </Modal>
       )}
 
+      {/* Edit Project Modal */}
+      {editingProject && (
+        <Modal title="Edit Project" onClose={() => setEditingProject(null)} wide>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Project Name
+                </label>
+                <Input
+                  value={editForm.name}
+                  onChange={(v) => setEditForm((f) => ({ ...f, name: v }))}
+                  placeholder="Project name"
+                />
+              </div>
+              <div className="col-span-2">
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Description
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                  style={{
+                    border: "1px solid var(--color-border)",
+                    fontFamily: "var(--font-body)",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Status
+                </label>
+                <Select
+                  value={editForm.status}
+                  onChange={(v) => setEditForm((f) => ({ ...f, status: v as ProjectStatus }))}
+                  options={PROJECT_STATUSES.map((s) => ({
+                    value: s,
+                    label: s,
+                  }))}
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Priority
+                </label>
+                <Select
+                  value={editForm.priority}
+                  onChange={(v) => setEditForm((f) => ({ ...f, priority: v as Priority }))}
+                  options={["Low", "Medium", "High", "Urgent"].map((s) => ({ value: s, label: s }))}
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Start Date
+                </label>
+                <Input
+                  type="date"
+                  value={editForm.startDate}
+                  onChange={(v) => setEditForm((f) => ({ ...f, startDate: v }))}
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Due Date
+                </label>
+                <Input
+                  type="date"
+                  value={editForm.dueDate}
+                  onChange={(v) => setEditForm((f) => ({ ...f, dueDate: v }))}
+                />
+              </div>
+              <div className="col-span-2">
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Department
+                </label>
+                <Input
+                  value={editForm.requestingDepartment}
+                  onChange={(v) => setEditForm((f) => ({ ...f, requestingDepartment: v }))}
+                  placeholder="e.g. Engineering, IT"
+                />
+              </div>
+              <div className="col-span-2">
+                <label
+                  className="block text-sm font-medium mb-1.5"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Assign Developers & Admins (Select one or more)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 max-h-48 overflow-y-auto">
+                  {developers.map((dev) => {
+                    const isSelected = editForm.memberIds.includes(dev.id);
+                    return (
+                      <label
+                        key={dev.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border text-xs transition-colors ${
+                          isSelected
+                            ? "bg-blue-50 border-blue-400 text-blue-900 font-semibold"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditForm((f) => ({ ...f, memberIds: [...f.memberIds, dev.id] }));
+                            } else {
+                              setEditForm((f) => ({ ...f, memberIds: f.memberIds.filter((id) => id !== dev.id) }));
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold" style={{ background: "#1a3896" }}>
+                          {dev.avatar}
+                        </span>
+                        <span className="truncate">
+                          {dev.fullName} {dev.role === "Admin" && <span className="text-[10px] text-blue-600 font-semibold">(Admin)</span>}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {editForm.memberIds.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">Please select at least one developer or admin for this project.</p>
+                )}
+              </div>
+
+              {(editingProject.isOverdue || Boolean(editingProject.missedDeadlineReason) || (editingProject.dueDate && new Date(editingProject.dueDate) < new Date())) && (
+                <div className="col-span-2 pt-2 border-t border-slate-200">
+                  <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
+                    Overdue Reason
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editForm.missedDeadlineReason}
+                    onChange={(e) => setEditForm((f) => ({ ...f, missedDeadlineReason: e.target.value }))}
+                    placeholder="Describe what caused the project delay…"
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                    style={{ border: "1px solid var(--color-border)", resize: "vertical" }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setEditingProject(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={!editForm.name || editForm.memberIds.length === 0}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Reason Modal */}
       {showReason && (
-        <Modal title="Submit Missed Deadline Reason" onClose={() => setShowReason(null)}>
+        <Modal
+          title={showReason.missedDeadlineReason ? "Edit Overdue Reason" : "Submit Overdue Reason"}
+          onClose={() => setShowReason(null)}
+        >
           <div className="space-y-4">
             <div>
               <label
                 className="block text-sm font-medium mb-1"
                 style={{ fontFamily: "var(--font-display)" }}
               >
-                Category
-              </label>
-              <Select
-                value={reasonForm.category}
-                onChange={(v) => setReasonForm((f) => ({ ...f, category: v }))}
-                options={REASON_CATEGORIES.map((c) => ({ value: c, label: c }))}
-              />
-            </div>
-            <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                Reason
+                Overdue Reason
               </label>
               <textarea
                 rows={3}
@@ -555,8 +837,8 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
               <Button variant="secondary" onClick={() => setShowReason(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmitReason} disabled={!reasonForm.reason}>
-                Submit Reason
+              <Button onClick={handleSubmitReason} disabled={!reasonForm.reason.trim()}>
+                {showReason.missedDeadlineReason ? "Save Reason" : "Submit Reason"}
               </Button>
             </div>
           </div>

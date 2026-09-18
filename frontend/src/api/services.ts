@@ -164,15 +164,24 @@ export const projectsApi = {
   },
 
   async updateProject(id: number, data: any): Promise<any> {
-    return await apiClient.put(`/Projects/${id}`, data);
+    const payload = {
+      ...data,
+      startDate: data.startDate?.trim() ? data.startDate : null,
+      dueDate: data.dueDate?.trim() ? data.dueDate : null,
+    };
+    return await apiClient.put(`/Projects/${id}`, payload);
+  },
+
+  async updateProjectStatus(id: number, status: string): Promise<any> {
+    return await apiClient.patch(`/Projects/${id}/status?status=${encodeURIComponent(status)}`);
   },
 
   async deleteProject(id: number): Promise<any> {
     return await apiClient.delete(`/Projects/${id}`);
   },
 
-  async submitMissedReason(id: number, reason: string, category: string): Promise<any> {
-    return await apiClient.put(`/Projects/${id}/missed-reason`, { reason, category });
+  async submitMissedReason(id: number, reason: string, category?: string): Promise<any> {
+    return await apiClient.put(`/Projects/${id}/missed-reason`, { reason, category: category || null });
   },
 };
 
