@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import type { User, Notification } from "../data/mock";
 import { MOCK_NOTIFICATIONS } from "../data/mock";
 import { notificationsApi } from "../api/services";
-import heroLogo from "../imports/image.png";
 
 type Page =
   | "dashboard-admin"
@@ -177,11 +176,12 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
             </div>
           ) : (
             <div className="flex flex-col gap-0.5">
-              <img
-                src={heroLogo}
-                alt="Hero Middle East & Africa"
-                style={{ height: 28, objectFit: "contain", objectPosition: "left", filter: "brightness(0) invert(1)", maxWidth: 180 }}
-              />
+              <span
+                className="font-bold text-white tracking-tight leading-tight"
+                style={{ fontFamily: "var(--font-display)", fontSize: 18 }}
+              >
+                Hero CRM
+              </span>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#4a8220", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 500, paddingLeft: 1 }}>
                 CRM &amp; Project Platform
               </span>
