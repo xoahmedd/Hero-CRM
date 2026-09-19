@@ -27,15 +27,9 @@ namespace Infrastructure._Data
         public DbSet<ProjectMember> ProjectMembers { get; set; }
 
         public DbSet<TaskItem> TaskItems { get; set; }
-        public DbSet<SubTask> SubTasks { get; set; }
         public DbSet<TaskAssignee> TaskAssignees { get; set; }
 
-        public DbSet<Tag> Tags { get; set; }
-        public DbSet<TaskTag> TaskTags { get; set; }
-
         public DbSet<Comment> Comments { get; set; }
-        public DbSet<Domain.Entities.Collaborations.Attachment> Attachments { get; set; }
-        public DbSet<Domain.Entities.Collaborations.Activity> Activities { get; set; }
         public DbSet<Notification> Notifications { get; set; }
     }
 }

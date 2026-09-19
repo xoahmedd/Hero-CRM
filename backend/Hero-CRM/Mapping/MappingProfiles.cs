@@ -7,13 +7,9 @@ using Domain.Entities.Tasks;
 using Domain.Enums;
 
 // DTOs
-using Application.DTOs.Collaborations.Activity;
-using Application.DTOs.Collaborations.Attachment;
 using Application.DTOs.Collaborations.Comment;
 using Application.DTOs.Collaborations.Notification;
 using Application.DTOs.Projects;
-using Application.DTOs.Tasks.SubTask;
-using Application.DTOs.Tasks.Tag;
 using Application.DTOs.Tasks.TaskItem;
 
 namespace Hero_CRM.Mapping
@@ -26,24 +22,11 @@ namespace Hero_CRM.Mapping
             ValueTransformers.Add<string>(val => val == null ? null! : val.Trim());
 
             #region Collaborations Mappings
-            CreateMap<Activity, ActivityResponse>().ReverseMap();
-
-            CreateMap<Attachment, AttachmentResponse>().ReverseMap();
-            CreateMap<CreateAttachmentRequest, Attachment>()
-                .ForMember(dest => dest.UploadedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
-
             CreateMap<Comment, CommentResponse>().ReverseMap();
             CreateMap<CreateCommentRequest, Comment>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
-            CreateMap<UpdateCommentRequest, Comment>()
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.TaskItemId, opt => opt.Ignore())
-                .ForMember(dest => dest.UserId, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
 
             CreateMap<Notification, NotificationResponse>().ReverseMap();
-            CreateMap<CreateNotificationRequest, Notification>();
             #endregion
 
             #region Project Mappings
@@ -66,18 +49,6 @@ namespace Hero_CRM.Mapping
             #endregion
 
             #region Task Mappings
-            CreateMap<SubTask, SubTaskResponse>().ReverseMap();
-            CreateMap<CreateSubTaskRequest, SubTask>()
-                .ForMember(dest => dest.IsCompleted, opt => opt.MapFrom(_ => false));
-
-            CreateMap<UpdateSubTaskRequest, SubTask>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.TaskItemId, opt => opt.Ignore());
-
-            CreateMap<Tag, TagResponse>().ReverseMap();
-            CreateMap<CreateTagRequest, Tag>();
-            CreateMap<AssignTagRequest, TaskTag>();
-
             CreateMap<TaskItem, TaskResponse>()
                 .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src =>
                     !string.IsNullOrEmpty(src.MissedDeadlineReason) ||

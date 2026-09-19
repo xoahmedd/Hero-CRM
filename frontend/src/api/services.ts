@@ -3,7 +3,6 @@ import type {
   User,
   Project,
   Task,
-  SubTask,
   Comment,
   Notification,
   Role,
@@ -296,33 +295,6 @@ export const tasksApi = {
 
   async submitMissedReason(id: number, reason: string, category: string): Promise<any> {
     return await apiClient.put(`/Tasks/${id}/missed-reason`, { reason, category });
-  },
-};
-
-// SubTasks API
-export const subtasksApi = {
-  async getSubTasks(taskId: number): Promise<SubTask[]> {
-    const res = await apiClient.get<any[]>(`/SubTasks/task/${taskId}`);
-    return res.map((s) => ({
-      id: s.id,
-      taskId: s.taskId,
-      title: s.title,
-      isCompleted: s.isCompleted,
-    }));
-  },
-
-  async createSubTask(taskId: number, title: string): Promise<SubTask> {
-    const res = await apiClient.post<any>("/SubTasks", { taskItemId: taskId, taskId, title });
-    return {
-      id: res.id,
-      taskId: res.taskItemId || taskId,
-      title: res.title,
-      isCompleted: res.isCompleted || false,
-    };
-  },
-
-  async toggleSubTask(id: number): Promise<any> {
-    return await apiClient.patch(`/SubTasks/${id}/toggle`);
   },
 };
 

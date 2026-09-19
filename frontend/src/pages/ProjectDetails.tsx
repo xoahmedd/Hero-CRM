@@ -1780,7 +1780,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
             <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm">
               <p className="font-semibold mb-1">Are you sure you want to delete this task?</p>
               <p className="text-xs text-rose-700">
-                This will permanently delete "<strong>{taskToDelete.title}</strong>", including its comments and subtasks. This action cannot be undone.
+                This will permanently delete "<strong>{taskToDelete.title}</strong>", including its comments. This action cannot be undone.
               </p>
             </div>
             <div className="flex justify-end gap-2 pt-2">

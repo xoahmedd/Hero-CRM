@@ -23,14 +23,7 @@ namespace Domain.Entities.Tasks
         public Project Project { get; set; } = null!;
         public ICollection<TaskAssignee> Assignees { get; set; }
             = new List<TaskAssignee>();
-        public ICollection<SubTask> SubTasks { get; set; }
-            = new List<SubTask>();
         public ICollection<Comment> Comments { get; set; }
             = new List<Comment>();
-        public ICollection<Attachment> Attachments { get; set; }
-            = new List<Attachment>();
-        public ICollection<TaskTag> TaskTags { get; set; }
-            = new List<TaskTag>();
     }
-
 }

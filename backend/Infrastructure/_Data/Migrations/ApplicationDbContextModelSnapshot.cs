@@ -22,75 +22,6 @@ namespace Infrastructure._Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Domain.Entities.Collaborations.Activity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("EntityId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Activities");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Collaborations.Attachment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ContentType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long?>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TaskItemId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskItemId");
-
-                    b.ToTable("Attachments");
-                });
 
             modelBuilder.Entity("Domain.Entities.Collaborations.Comment", b =>
                 {
@@ -373,54 +304,6 @@ namespace Infrastructure._Data.Migrations
                     b.ToTable("ProjectMembers");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Tasks.SubTask", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("TaskItemId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskItemId");
-
-                    b.ToTable("SubTasks");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Tasks.Tag", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Color")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Tags");
-                });
-
             modelBuilder.Entity("Domain.Entities.Tasks.TaskAssignee", b =>
                 {
                     b.Property<int>("TaskItemId")
@@ -498,20 +381,6 @@ namespace Infrastructure._Data.Migrations
                     b.ToTable("TaskItems");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Tasks.TaskTag", b =>
-                {
-                    b.Property<int>("TaskItemId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TagId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TaskItemId", "TagId");
-
-                    b.HasIndex("TagId");
-
-                    b.ToTable("TaskTags");
-                });
 
 
 
@@ -618,17 +487,6 @@ namespace Infrastructure._Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Collaborations.Attachment", b =>
-                {
-                    b.HasOne("Domain.Entities.Tasks.TaskItem", "TaskItem")
-                        .WithMany("Attachments")
-                        .HasForeignKey("TaskItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TaskItem");
-                });
-
             modelBuilder.Entity("Domain.Entities.Collaborations.Comment", b =>
                 {
                     b.HasOne("Domain.Entities.Tasks.TaskItem", "TaskItem")
@@ -653,17 +511,6 @@ namespace Infrastructure._Data.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Tasks.SubTask", b =>
-                {
-                    b.HasOne("Domain.Entities.Tasks.TaskItem", "TaskItem")
-                        .WithMany("SubTasks")
-                        .HasForeignKey("TaskItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TaskItem");
-                });
-
             modelBuilder.Entity("Domain.Entities.Tasks.TaskAssignee", b =>
                 {
                     b.HasOne("Domain.Entities.Tasks.TaskItem", "TaskItem")
@@ -684,25 +531,6 @@ namespace Infrastructure._Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Tasks.TaskTag", b =>
-                {
-                    b.HasOne("Domain.Entities.Tasks.Tag", "Tag")
-                        .WithMany("TaskTags")
-                        .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.Tasks.TaskItem", "TaskItem")
-                        .WithMany("TaskTags")
-                        .HasForeignKey("TaskItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tag");
-
-                    b.Navigation("TaskItem");
                 });
 
 
@@ -765,22 +593,11 @@ namespace Infrastructure._Data.Migrations
                     b.Navigation("Tasks");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Tasks.Tag", b =>
-                {
-                    b.Navigation("TaskTags");
-                });
-
             modelBuilder.Entity("Domain.Entities.Tasks.TaskItem", b =>
                 {
                     b.Navigation("Assignees");
 
-                    b.Navigation("Attachments");
-
                     b.Navigation("Comments");
-
-                    b.Navigation("SubTasks");
-
-                    b.Navigation("TaskTags");
                 });
 #pragma warning restore 612, 618
         }

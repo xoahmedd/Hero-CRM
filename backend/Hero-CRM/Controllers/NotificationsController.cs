@@ -26,32 +26,6 @@ namespace Hero_CRM.Controllers
             _mapper = mapper;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetNotifications(
-            [FromQuery] int? pageIndex = null,
-            [FromQuery] int? pageSize = null)
-        {
-            if (pageIndex.HasValue || pageSize.HasValue)
-            {
-                var pagedNotifications = await _notificationRepo.GetPagedAsync(
-                    pageIndex ?? 1,
-                    pageSize ?? 20,
-                    orderBy: q => q.OrderByDescending(n => n.CreatedAt));
-
-                var data = _mapper.Map<IEnumerable<NotificationResponse>>(pagedNotifications.Data);
-                return Ok(new Pagination<NotificationResponse>(
-                    pagedNotifications.PageIndex,
-                    pagedNotifications.PageSize,
-                    pagedNotifications.Count,
-                    data));
-            }
-
-            var notifications = await _notificationRepo.GetQueryable()
-                .OrderByDescending(n => n.CreatedAt)
-                .ToListAsync();
-
-            return Ok(_mapper.Map<IEnumerable<NotificationResponse>>(notifications));
-        }
 
         [HttpGet("user/{userId:int}")]
         public async Task<IActionResult> GetUserNotifications(

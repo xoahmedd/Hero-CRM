@@ -198,31 +198,6 @@ namespace Hero_CRM.Controllers
                 response);
         }
 
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateComment(int id, UpdateCommentRequest request)
-        {
-            var comment = await _commentRepo.GetByIdAsync(id);
-
-            if (comment == null)
-            {
-                return NotFound(new
-                {
-                    message = "Comment not found."
-                });
-            }
-
-            comment.Content = request.Content.Trim();
-            comment.UpdatedAt = DateTime.UtcNow;
-
-            _commentRepo.Update(comment);
-            await _commentRepo.SaveChangesAsync();
-
-            return Ok(new
-            {
-                message = "Comment updated successfully."
-            });
-        }
-
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteComment(int id)
         {

@@ -54,13 +54,6 @@ export interface Task {
   completedAt?: string | null;
 }
 
-export interface SubTask {
-  id: number;
-  taskId: number;
-  title: string;
-  isCompleted: boolean;
-}
-
 export interface Comment {
   id: number;
   taskId: number;
@@ -115,19 +108,6 @@ export const MOCK_TASKS: Task[] = [
   { id: 8, title: "EU GDPR compliance audit", description: "Full review of data processing flows against GDPR Article 30 requirements.", status: "Assigned", priority: "High", projectId: 5, projectName: "EuroRetail Market Expansion", assignees: [{ id: 6, name: "David Park", avatar: "DP" }], createdById: 1, dueDate: "2026-10-10", createdAt: "2026-09-10" },
   { id: 9, title: "Portal SSO integration", description: "SAML 2.0 SSO with corporate identity provider.", status: "Assigned", priority: "Urgent", projectId: 1, projectName: "Apex CRM Portal Redesign", assignees: [{ id: 2, name: "James Okafor", avatar: "JO" }, { id: 3, name: "Priya Mehta", avatar: "PM" }], createdById: 1, dueDate: "2026-10-01", createdAt: "2026-08-20" },
   { id: 10, title: "Set up CI/CD pipeline", description: "GitHub Actions pipeline with staging and production deployment gates.", status: "Completed", priority: "High", projectId: 2, projectName: "NovaTech API Gateway", assignees: [{ id: 8, name: "Marco Ferretti", avatar: "MF" }], createdById: 1, dueDate: "2026-07-30", createdAt: "2026-06-25" },
-];
-
-export const MOCK_SUBTASKS: SubTask[] = [
-  { id: 1, taskId: 4, title: "Audit current breakpoint behavior", isCompleted: true },
-  { id: 2, taskId: 4, title: "Implement responsive nav drawer", isCompleted: true },
-  { id: 3, taskId: 4, title: "Fix table overflow on mobile", isCompleted: false },
-  { id: 4, taskId: 4, title: "Test on iOS Safari and Chrome Android", isCompleted: false },
-  { id: 5, taskId: 3, title: "Design Redis schema", isCompleted: true },
-  { id: 6, taskId: 3, title: "Implement token bucket algorithm", isCompleted: false },
-  { id: 7, taskId: 3, title: "Write unit tests for sliding window", isCompleted: false },
-  { id: 8, taskId: 9, title: "Configure SAML metadata endpoints", isCompleted: true },
-  { id: 9, taskId: 9, title: "Handle assertion consumer service", isCompleted: false },
-  { id: 10, taskId: 9, title: "Test attribute mapping with IdP", isCompleted: false },
 ];
 
 export const MOCK_COMMENTS: Comment[] = [
