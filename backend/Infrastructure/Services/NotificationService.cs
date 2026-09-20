@@ -45,7 +45,7 @@ namespace Infrastructure.Services
             await SendNotificationAsync(
                 userId,
                 "New Project Assigned",
-                $"You have been assigned as Lead Developer for the project '{projectName}'.",
+                $"You have been assigned as Developer for the project '{projectName}'.",
                 NotificationType.ProjectAssigned,
                 projectId: projectId);
         }

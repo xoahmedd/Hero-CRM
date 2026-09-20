@@ -326,7 +326,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   <div className="text-sm sm:text-base font-semibold text-white group-hover:text-blue-200 truncate">
                     James Okafor
                   </div>
-                  <div className="text-xs sm:text-sm text-slate-400 mt-0.5">Lead Developer</div>
+                  <div className="text-xs sm:text-sm text-slate-400 mt-0.5">Developer</div>
                 </div>
                 <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 flex-shrink-0">
                   Dev
