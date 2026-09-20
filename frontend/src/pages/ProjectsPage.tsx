@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Project, Priority, ProjectStatus, User } from "../data/mock";
-import { MOCK_PROJECTS, MOCK_USERS, MOCK_TASKS } from "../data/mock";
+import type { Project, Priority, ProjectStatus, User } from "../types";
 import { projectsApi, usersApi } from "../api/services";
 import { Badge, Button, Card, EmptyState, Input, Modal, ProgressBar, Select } from "../components/ui";
 
@@ -21,8 +20,8 @@ interface Props {
 }
 
 export default function ProjectsPage({ currentUser, onViewProject }: Props) {
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
-  const [usersList, setUsersList] = useState<User[]>(MOCK_USERS);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [usersList, setUsersList] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
@@ -31,13 +30,13 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
     projectsApi
       .getProjects()
       .then((data) => {
-        if (data && data.length > 0) setProjects(data);
+        setProjects(Array.isArray(data) ? data : []);
       })
       .catch(() => {});
     usersApi
       .getUsers()
       .then((data) => {
-        if (data && data.length > 0) setUsersList(data);
+        setUsersList(Array.isArray(data) ? data : []);
       })
       .catch(() => {});
   }, []);

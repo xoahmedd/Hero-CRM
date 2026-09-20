@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User, Notification } from "../data/mock";
-import { MOCK_NOTIFICATIONS } from "../data/mock";
+import type { User, Notification } from "../types";
 import { notificationsApi } from "../api/services";
 
 type Page =
@@ -91,12 +90,7 @@ function saveAllLocalReadIds(userId: number | undefined, notifIds: number[]) {
 }
 
 export default function Layout({ currentUser, currentPage, onNavigate, children, onLogout }: LayoutProps) {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const readIds = getLocalReadIds(currentUser?.id);
-    return MOCK_NOTIFICATIONS.map((n) =>
-      readIds.has(n.id) ? { ...n, isRead: true } : n
-    );
-  });
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -113,13 +107,7 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
           setNotifications(merged);
         }
       })
-      .catch(() => {
-        setNotifications(
-          MOCK_NOTIFICATIONS.map((n) =>
-            n.isRead || readIds.has(n.id) ? { ...n, isRead: true } : n
-          )
-        );
-      });
+      .catch(() => {});
   }, [currentUser?.id]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;

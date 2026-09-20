@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Task, Project, User, Comment, Priority, TaskStatus, ProjectStatus } from "../data/mock";
-import { MOCK_PROJECTS, MOCK_TASKS, MOCK_COMMENTS } from "../data/mock";
+import type { Task, Project, User, Comment, Priority, TaskStatus, ProjectStatus } from "../types";
 import { projectsApi, tasksApi, commentsApi, projectMembersApi, usersApi } from "../api/services";
 import { Badge, Button, Card, Modal, ProgressBar, Select, Input } from "../components/ui";
 import { PROJECT_STATUSES } from "./ProjectsPage";
@@ -21,19 +20,6 @@ interface Props {
   projectId: number;
   currentUser?: User;
   onBack: () => void;
-}
-
-function timeAgo(dateStr: string) {
-  if (!dateStr) return "—";
-  try {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    if (isNaN(diff)) return "—";
-    const hrs = Math.floor(diff / 3600000);
-    if (hrs < 24) return `${Math.max(0, hrs)}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
-  } catch {
-    return "—";
-  }
 }
 
 function safeFormatDate(dateStr?: string | null): string {
@@ -84,14 +70,10 @@ function checkIsOverdue(task: Task | null | undefined): boolean {
 }
 
 export default function ProjectDetails({ projectId, currentUser, onBack }: Props) {
-  const [project, setProject] = useState<Project | undefined>(
-    MOCK_PROJECTS.find((p) => p.id === projectId)
-  );
-  const [tasks, setTasks] = useState<Task[]>(
-    MOCK_TASKS.filter((t) => t.projectId === projectId)
-  );
-  const [isLoading, setIsLoading] = useState(!project);
-  const [comments, setComments] = useState(MOCK_COMMENTS);
+  const [project, setProject] = useState<Project | undefined>(undefined);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newComment, setNewComment] = useState("");

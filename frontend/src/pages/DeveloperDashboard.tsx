@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User, Project, Task } from "../data/mock";
-import { MOCK_PROJECTS, MOCK_TASKS } from "../data/mock";
+import type { User, Project, Task } from "../types";
 import { projectsApi, tasksApi, notificationsApi } from "../api/services";
 import { Badge, Button, Card, KpiCard, Modal, ProgressBar, SectionHeader, Select } from "../components/ui";
 
@@ -19,8 +18,8 @@ interface Props {
 }
 
 export default function DeveloperDashboard({ currentUser, onNavigateProject }: Props) {
-  const [projectsList, setProjectsList] = useState<Project[]>(MOCK_PROJECTS);
-  const [tasksList, setTasksList] = useState<Task[]>(MOCK_TASKS);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [tasksList, setTasksList] = useState<Task[]>([]);
   const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0);
   const [showReasonItem, setShowReasonItem] = useState<{
     type: "Project" | "Task";
@@ -32,10 +31,10 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
 
   useEffect(() => {
     projectsApi.getProjects()
-      .then((res) => { if (res && res.length > 0) setProjectsList(res); })
+      .then((res) => { if (Array.isArray(res)) setProjectsList(res); })
       .catch(() => {});
     tasksApi.getTasks()
-      .then((res) => { if (res && res.length > 0) setTasksList(res); })
+      .then((res) => { if (Array.isArray(res)) setTasksList(res); })
       .catch(() => {});
     if (currentUser?.id) {
       notificationsApi.getNotifications(currentUser.id)

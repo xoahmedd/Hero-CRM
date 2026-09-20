@@ -142,6 +142,7 @@ export const projectsApi = {
   async createProject(data: {
     name: string;
     description: string;
+    status?: string;
     ownerId?: number;
     memberIds?: number[];
     startDate?: string;
@@ -264,6 +265,7 @@ export const tasksApi = {
   async createTask(data: {
     title: string;
     description?: string;
+    status?: string;
     projectId: number;
     createdById: number;
     assigneeIds?: number[];

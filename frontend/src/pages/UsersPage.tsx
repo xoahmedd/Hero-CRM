@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import type { User, Role } from "../data/mock";
-import { MOCK_USERS } from "../data/mock";
+import type { User, Role } from "../types";
 import { usersApi } from "../api/services";
 import { Button, Card, Input, Modal, Select, Table } from "../components/ui";
 
 const ROLES: Role[] = ["Admin", "Developer"];
 
 export default function UsersPage({ currentUser }: { currentUser?: User }) {
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -15,7 +14,7 @@ export default function UsersPage({ currentUser }: { currentUser?: User }) {
 
   useEffect(() => {
     usersApi.getUsers()
-      .then((data) => { if (data && data.length > 0) setUsers(data); })
+      .then((data) => { if (Array.isArray(data)) setUsers(data); })
       .catch(() => {});
   }, []);
 

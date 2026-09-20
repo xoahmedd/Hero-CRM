@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Task, User } from "../data/mock";
-import { MOCK_TASKS, MOCK_PROJECTS, MOCK_USERS } from "../data/mock";
+import type { Task, User, Project } from "../types";
 import { tasksApi, projectsApi, usersApi } from "../api/services";
 import { Badge, Button, Card, EmptyState, Input, Modal, Select } from "../components/ui";
 
@@ -76,9 +75,9 @@ interface Props {
 }
 
 export default function TasksPage({ currentUser }: Props) {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  const [projectsList, setProjectsList] = useState(MOCK_PROJECTS);
-  const [usersList, setUsersList] = useState<User[]>(MOCK_USERS);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [usersList, setUsersList] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<"mine" | "all">(currentUser.role === "Admin" ? "all" : "mine");
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("All");
