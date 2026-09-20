@@ -175,7 +175,7 @@ namespace Hero_CRM.Controllers
                 var totalCount = await query.CountAsync();
 
                 IOrderedQueryable<Project> orderedPagedQuery;
-                if (status.HasValue && (status.Value == ProjectStatus.InProgress || status.Value == ProjectStatus.Working))
+                if (status.HasValue && status.Value == ProjectStatus.InProgress)
                 {
                     orderedPagedQuery = query
                         .OrderBy(p => p.DueDate == null)
@@ -207,7 +207,7 @@ namespace Hero_CRM.Controllers
             }
 
             IOrderedQueryable<Project> orderedProjects;
-            if (status.HasValue && (status.Value == ProjectStatus.InProgress || status.Value == ProjectStatus.Working))
+            if (status.HasValue && status.Value == ProjectStatus.InProgress)
             {
                 orderedProjects = query
                     .OrderBy(p => p.DueDate == null)
@@ -464,7 +464,7 @@ namespace Hero_CRM.Controllers
         {
             var now = DateTime.UtcNow;
             var query = _projectRepo.GetQueryable()
-                .Where(p => (p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled) || p.Status == ProjectStatus.Overdue);
+                .Where(p => p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled);
 
             if (!IsAdmin)
             {
@@ -609,15 +609,32 @@ namespace Hero_CRM.Controllers
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> UpdateProjectStatus(
             int id,
-            [FromQuery] ProjectStatus? status = null,
+            [FromQuery] string? status = null,
             [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] UpdateProjectStatusDto? dto = null)
         {
-            var targetStatus = dto?.Status ?? status;
+            ProjectStatus? targetStatus = dto?.Status;
+            if (!targetStatus.HasValue && !string.IsNullOrWhiteSpace(status))
+            {
+                var s = status.Trim().Replace(" ", "").Replace("_", "").Replace("-", "");
+                if (Enum.TryParse<ProjectStatus>(s, true, out var parsed))
+                {
+                    targetStatus = parsed;
+                }
+                else if (s.Equals("Working", StringComparison.OrdinalIgnoreCase) || s.Equals("Planning", StringComparison.OrdinalIgnoreCase) || s.Equals("Submitted", StringComparison.OrdinalIgnoreCase))
+                {
+                    targetStatus = ProjectStatus.InProgress;
+                }
+                else if (s.Equals("Canceled", StringComparison.OrdinalIgnoreCase) || s.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
+                {
+                    targetStatus = ProjectStatus.Cancelled;
+                }
+            }
+
             if (!targetStatus.HasValue)
             {
                 return BadRequest(new
                 {
-                    message = "Status is required."
+                    message = "Status is required ('InProgress', 'Finished', or 'Cancelled')."
                 });
             }
 
@@ -709,10 +726,5 @@ namespace Hero_CRM.Controllers
                 message = "Project deleted successfully."
             });
         }
-    }
-
-    public class UpdateProjectStatusDto
-    {
-        public ProjectStatus? Status { get; set; }
     }
 }

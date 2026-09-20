@@ -163,7 +163,7 @@ export const REPORTS_DATA = {
   summary: { totalProjects: 8, activeProjects: 2, totalTasks: 10, completedTasks: 3, pendingTasks: 3, overdueTasks: 1, totalUsers: 8, taskCompletionRate: 30 },
   taskStatus: [{ name: "Completed", count: 3 }, { name: "Assigned", count: 6 }, { name: "Review", count: 1 }],
   taskPriority: [{ name: "Urgent", count: 3 }, { name: "High", count: 4 }, { name: "Medium", count: 2 }, { name: "Low", count: 1 }],
-  projectStatus: [{ name: "Working", count: 2 }, { name: "Finished", count: 2 }, { name: "Overdue", count: 1 }, { name: "Planning", count: 1 }, { name: "Submitted", count: 2 }],
+  projectStatus: [{ name: "In Progress", count: 5 }, { name: "Finished", count: 2 }, { name: "Cancelled", count: 1 }],
   activityTrend: [
     { period: "2026-04", label: "Apr", tasksCreated: 2, projectsCreated: 1 },
     { period: "2026-05", label: "May", tasksCreated: 3, projectsCreated: 2 },
@@ -173,11 +173,11 @@ export const REPORTS_DATA = {
     { period: "2026-09", label: "Sep", tasksCreated: 2, projectsCreated: 1 },
   ],
   projectPerformance: [
-    { projectId: 1, projectName: "Apex CRM Portal Redesign", status: "Working", totalTasks: 3, completedTasks: 1, overdueTasks: 0, completionRate: 33 },
-    { projectId: 2, projectName: "NovaTech API Gateway", status: "Working", totalTasks: 4, completedTasks: 2, overdueTasks: 0, completionRate: 50 },
-    { projectId: 3, projectName: "HR Onboarding Automation", status: "Overdue", totalTasks: 2, completedTasks: 0, overdueTasks: 1, completionRate: 0 },
+    { projectId: 1, projectName: "Apex CRM Portal Redesign", status: "In Progress", totalTasks: 3, completedTasks: 1, overdueTasks: 0, completionRate: 33 },
+    { projectId: 2, projectName: "NovaTech API Gateway", status: "In Progress", totalTasks: 4, completedTasks: 2, overdueTasks: 0, completionRate: 50 },
+    { projectId: 3, projectName: "HR Onboarding Automation", status: "In Progress", totalTasks: 2, completedTasks: 0, overdueTasks: 1, completionRate: 0 },
     { projectId: 4, projectName: "Meridian Compliance Dashboard", status: "Finished", totalTasks: 5, completedTasks: 5, overdueTasks: 0, completionRate: 100 },
-    { projectId: 5, projectName: "EuroRetail Market Expansion", status: "Planning", totalTasks: 1, completedTasks: 0, overdueTasks: 0, completionRate: 0 },
+    { projectId: 5, projectName: "EuroRetail Market Expansion", status: "In Progress", totalTasks: 1, completedTasks: 0, overdueTasks: 0, completionRate: 0 },
     { projectId: 8, projectName: "Internal Knowledge Base", status: "Finished", totalTasks: 3, completedTasks: 3, overdueTasks: 0, completionRate: 100 },
   ],
 };

@@ -41,7 +41,7 @@ namespace Hero_CRM.Controllers
 
             var totalProjects = await _context.Projects.CountAsync();
             var activeProjects = await _context.Projects
-                .CountAsync(p => p.Status == ProjectStatus.Working || p.Status == ProjectStatus.InProgress);
+                .CountAsync(p => p.Status == ProjectStatus.InProgress);
 
             var totalTasks = await _context.TaskItems.CountAsync();
             var completedTasks = await _context.TaskItems

@@ -58,10 +58,10 @@ namespace Hero_CRM.Controllers
             var tasks = await _taskRepo.GetQueryable().ToListAsync();
             var users = await _userManager.Users.Where(u => u.IsActive).ToListAsync();
 
-            var pendingProjects = projects.Count(p => p.Status == ProjectStatus.InProgress);
-            var workingProjects = projects.Count(p => p.Status == ProjectStatus.InProgress);
+            var inProgressProjects = projects.Count(p => p.Status == ProjectStatus.InProgress);
             var finishedProjects = projects.Count(p => p.Status == ProjectStatus.Finished);
-            var overdueProjects = projects.Count(p => (p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled) || p.Status == ProjectStatus.Overdue);
+            var cancelledProjects = projects.Count(p => p.Status == ProjectStatus.Cancelled);
+            var overdueProjects = projects.Count(p => p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled);
 
             var completedTasks = tasks.Count(t => t.Status == TaskItemStatus.Completed);
             var pendingTasks = tasks.Count(t => t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
@@ -98,7 +98,7 @@ namespace Hero_CRM.Controllers
 
             // Overdue Items Needing Reason
             var overdueItems = new List<OverdueItemSummary>();
-            foreach (var p in projects.Where(p => (p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled) || p.Status == ProjectStatus.Overdue))
+            foreach (var p in projects.Where(p => p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled))
             {
                 var owner = users.FirstOrDefault(u => u.Id == p.OwnerId);
                 overdueItems.Add(new OverdueItemSummary
@@ -145,9 +145,9 @@ namespace Hero_CRM.Controllers
             var adminDashboard = new AdminDashboardResponse
             {
                 TotalProjects = projects.Count,
-                PendingProjects = pendingProjects,
-                WorkingProjects = workingProjects,
+                InProgressProjects = inProgressProjects,
                 FinishedProjects = finishedProjects,
+                CancelledProjects = cancelledProjects,
                 OverdueProjects = overdueProjects,
                 TotalTasks = tasks.Count,
                 CompletedTasks = completedTasks,
@@ -216,7 +216,7 @@ namespace Hero_CRM.Controllers
 
             // Pending Reason Submissions for this developer
             var pendingReasons = new List<OverdueItemSummary>();
-            foreach (var p in assignedProjects.Where(p => (p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled) || p.Status == ProjectStatus.Overdue))
+            foreach (var p in assignedProjects.Where(p => p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled))
             {
                 if (string.IsNullOrWhiteSpace(p.MissedDeadlineReason))
                 {

@@ -10,8 +10,15 @@ namespace Infrastructure._Data.Configurations.ProjectsConfiguraions
         {
             builder.HasIndex(p => p.OwnerId);
 
+            var projectStatusConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Domain.Enums.ProjectStatus, string>(
+                v => v.ToString(),
+                v => (v == "Finished" || v == "Completed") ? Domain.Enums.ProjectStatus.Finished
+                   : (v == "Cancelled" || v == "Canceled" || v == "Rejected") ? Domain.Enums.ProjectStatus.Cancelled
+                   : Domain.Enums.ProjectStatus.InProgress
+            );
+
             builder.Property(p => p.Status)
-                   .HasConversion<string>()
+                   .HasConversion(projectStatusConverter)
                    .HasMaxLength(50);
 
             builder.Property(p => p.Priority)
