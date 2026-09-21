@@ -166,39 +166,21 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       const updated = await projectsApi.getProjects();
       setProjects(updated);
       window.dispatchEvent(new CustomEvent("refresh-notifications"));
-    } catch {
-      const selectedDevs = usersList.filter((u) => createForm.memberIds.includes(u.id));
-      const newProject: Project = {
-        id: projects.length + 1,
-        ...createForm,
-        ownerId: createForm.memberIds[0] || currentUser.id,
-        ownerName: selectedDevs.map((d) => d.fullName).join(", "),
-        members: selectedDevs.map((d) => ({
-          userId: d.id,
-          fullName: d.fullName,
-          email: d.email,
-          avatar: d.avatar,
-        })),
-        memberIds: createForm.memberIds,
-        missedDeadlineReason: null,
-        reasonCategory: null,
-        progress: 0,
-        status: createForm.status as Project["status"],
-        priority: createForm.priority as Project["priority"],
-      };
-      setProjects((prev) => [newProject, ...prev]);
+      setShowCreate(false);
+      setCreateForm({
+        name: "",
+        description: "",
+        status: "In Progress",
+        priority: "Medium",
+        startDate: "",
+        dueDate: "",
+        memberIds: [],
+        requestingDepartment: "Engineering",
+      });
+    } catch (err: any) {
+      console.error("Failed to create project:", err);
+      alert(err?.message || "Failed to create project on server.");
     }
-    setShowCreate(false);
-    setCreateForm({
-      name: "",
-      description: "",
-      status: "In Progress",
-      priority: "Medium",
-      startDate: "",
-      dueDate: "",
-      memberIds: [],
-      requestingDepartment: "Engineering",
-    });
   }
 
   function handleOpenEditModal(project: Project) {
@@ -238,36 +220,11 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       });
       const updated = await projectsApi.getProjects();
       setProjects(updated);
-    } catch {
-      const selectedDevs = usersList.filter((u) => editForm.memberIds.includes(u.id));
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === editingProject.id
-            ? {
-                ...p,
-                name: editForm.name,
-                description: editForm.description,
-                status: editForm.status,
-                priority: editForm.priority,
-                startDate: editForm.startDate,
-                dueDate: editForm.dueDate,
-                memberIds: editForm.memberIds,
-                ownerName: selectedDevs.map((d) => d.fullName).join(", "),
-                members: selectedDevs.map((d) => ({
-                  userId: d.id,
-                  fullName: d.fullName,
-                  email: d.email,
-                  avatar: d.avatar,
-                })),
-                requestingDepartment: editForm.requestingDepartment,
-                missedDeadlineReason: editForm.missedDeadlineReason || p.missedDeadlineReason,
-                reasonCategory: null,
-              }
-            : p
-        )
-      );
+      setEditingProject(null);
+    } catch (err: any) {
+      console.error("Failed to update project:", err);
+      alert(err?.message || "Failed to update project on server.");
     }
-    setEditingProject(null);
   }
 
   function handleOpenReasonModal(project: Project) {
@@ -283,21 +240,12 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       await projectsApi.submitMissedReason(showReason.id, reasonForm.reason);
       const updated = await projectsApi.getProjects();
       setProjects(updated);
-    } catch {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === showReason.id
-            ? {
-                ...p,
-                missedDeadlineReason: reasonForm.reason,
-                reasonCategory: null,
-              }
-            : p
-        )
-      );
+      setShowReason(null);
+      setReasonForm({ reason: "" });
+    } catch (err: any) {
+      console.error("Failed to submit reason:", err);
+      alert(err?.message || "Failed to submit reason.");
     }
-    setShowReason(null);
-    setReasonForm({ reason: "" });
   }
 
   const developers = usersList.filter((u) => u.role === "Developer" || u.role === "Admin");

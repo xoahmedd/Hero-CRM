@@ -388,19 +388,11 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       if (updated && updated.length > 0) {
         setComments((prev) => [...prev.filter((c) => c.taskId !== selectedTask.id), ...updated]);
       }
-    } catch {
-      const fallbackComment: Comment = {
-        id: Date.now(),
-        taskId: selectedTask.id,
-        authorId,
-        authorName: currentUser?.fullName || "Sarah Chen",
-        authorAvatar: currentUser?.avatar || "SC",
-        content: newComment,
-        createdAt: new Date().toISOString(),
-      };
-      setComments((prev) => [...prev, fallbackComment]);
+      setNewComment("");
+    } catch (err: any) {
+      console.error("Failed to add comment:", err);
+      alert(err?.message || "Failed to add comment.");
     }
-    setNewComment("");
   }
 
   async function handleAddMember() {
@@ -535,18 +527,11 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       await projectsApi.submitMissedReason(projectId, projectReasonForm.reason);
       const updated = await projectsApi.getProject(projectId);
       if (updated) setProject(updated);
-    } catch {
-      setProject((prev) =>
-        prev
-          ? {
-              ...prev,
-              missedDeadlineReason: projectReasonForm.reason,
-              reasonCategory: null,
-            }
-          : null
-      );
+      setShowProjectReasonModal(false);
+    } catch (err: any) {
+      console.error("Failed to submit reason:", err);
+      alert(err?.message || "Failed to submit reason.");
     }
-    setShowProjectReasonModal(false);
   }
 
   function startEditTask(task: Task) {

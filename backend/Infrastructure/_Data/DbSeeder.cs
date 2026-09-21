@@ -66,32 +66,10 @@ namespace Infrastructure._Data
 
             if (adminSarah == null || devJames == null || devPriya == null) return;
 
-            // 3. Clear existing seed data to ensure fresh, modern state
-            try
+            // 3. Prevent clearing user data if database is already seeded
+            if (await context.Projects.AnyAsync())
             {
-                var existingComments = await context.Comments.ToListAsync();
-                if (existingComments.Any()) context.Comments.RemoveRange(existingComments);
-
-                var existingNotifications = await context.Notifications.ToListAsync();
-                if (existingNotifications.Any()) context.Notifications.RemoveRange(existingNotifications);
-
-                var existingTaskAssignees = await context.TaskAssignees.ToListAsync();
-                if (existingTaskAssignees.Any()) context.TaskAssignees.RemoveRange(existingTaskAssignees);
-
-                var existingTasks = await context.TaskItems.ToListAsync();
-                if (existingTasks.Any()) context.TaskItems.RemoveRange(existingTasks);
-
-                var existingProjectMembers = await context.ProjectMembers.ToListAsync();
-                if (existingProjectMembers.Any()) context.ProjectMembers.RemoveRange(existingProjectMembers);
-
-                var existingProjects = await context.Projects.ToListAsync();
-                if (existingProjects.Any()) context.Projects.RemoveRange(existingProjects);
-
-                await context.SaveChangesAsync();
-            }
-            catch
-            {
-                // Fallback if table structures are fresh
+                return;
             }
 
             // 4. Seed Projects (strictly: InProgress = 1, Finished = 2, Cancelled = 3)

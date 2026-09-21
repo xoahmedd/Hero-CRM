@@ -272,21 +272,12 @@ export default function TasksPage({ currentUser }: Props) {
       await tasksApi.submitMissedReason(showReasonTask.id, reasonForm.reason, reasonForm.category);
       const updated = await tasksApi.getTasks();
       setTasks(updated);
-    } catch {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === showReasonTask.id
-            ? {
-                ...t,
-                missedDeadlineReason: reasonForm.reason,
-                reasonCategory: reasonForm.category,
-              }
-            : t
-        )
-      );
+      setShowReasonTask(null);
+      setReasonForm({ reason: "", category: "Resource Constraints" });
+    } catch (err: any) {
+      console.error("Failed to submit reason:", err);
+      alert(err?.message || "Failed to submit reason.");
     }
-    setShowReasonTask(null);
-    setReasonForm({ reason: "", category: "Resource Constraints" });
   }
 
   async function handleCreate() {

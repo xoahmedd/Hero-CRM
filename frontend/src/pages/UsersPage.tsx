@@ -28,21 +28,12 @@ export default function UsersPage({ currentUser }: { currentUser?: User }) {
       });
       const updated = await usersApi.getUsers();
       setUsers(updated);
-    } catch {
-      const initials = form.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-      const newUser: User = {
-        id: users.length + 1,
-        fullName: form.fullName,
-        email: form.email,
-        role: form.role,
-        avatar: initials,
-        isActive: true,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setUsers((prev) => [...prev, newUser]);
+      setShowCreate(false);
+      setForm({ fullName: "", email: "", role: "Developer", avatar: "" });
+    } catch (err: any) {
+      console.error("Failed to create user:", err);
+      alert(err?.message || "Failed to create user on server.");
     }
-    setShowCreate(false);
-    setForm({ fullName: "", email: "", role: "Developer", avatar: "" });
   }
 
   async function handleDeleteUser() {
@@ -62,12 +53,14 @@ export default function UsersPage({ currentUser }: { currentUser?: User }) {
 
   async function toggleActive(id: number) {
     const target = users.find((u) => u.id === id);
-    if (target) {
-      try {
-        await usersApi.updateUser(id, { ...target, isActive: !target.isActive });
-      } catch {}
+    if (!target) return;
+    try {
+      await usersApi.updateUser(id, { ...target, isActive: !target.isActive });
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, isActive: !u.isActive } : u)));
+    } catch (err: any) {
+      console.error("Failed to toggle user active status:", err);
+      alert(err?.message || "Failed to toggle user status.");
     }
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, isActive: !u.isActive } : u)));
   }
 
   const roleColors: Record<Role, { bg: string; color: string }> = {
