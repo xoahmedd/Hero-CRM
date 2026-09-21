@@ -302,14 +302,10 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map((project) => {
             const isProjectOverdue =
-              Boolean(project.isOverdue) ||
-              Boolean(project.missedDeadlineReason) ||
-              Boolean(
-                project.dueDate &&
-                new Date(project.dueDate) < new Date() &&
-                project.status !== "Finished" &&
-                project.status !== "Cancelled"
-              );
+              project.status !== "Finished" &&
+              project.status !== "Cancelled" &&
+              (Boolean(project.isOverdue) ||
+               Boolean(project.dueDate && new Date(project.dueDate) < new Date()));
 
             return (
               <Card key={project.id} style={{ padding: "26px 28px" }}>

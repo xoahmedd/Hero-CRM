@@ -24,7 +24,9 @@ const PROJECT_STATUS_COLORS: Record<string, string> = {
 
 const TASK_STATUS_COLORS: Record<string, string> = {
   "In Progress": "#1a3896",
+  "Assigned": "#1a3896",
   "In Review": "#8b5cf6",
+  "Review": "#8b5cf6",
   Completed: "#22c55e",
   Cancelled: "#94a3b8",
 };
@@ -186,11 +188,8 @@ export default function AdminDashboard() {
   const inProgressProjects = filteredProjects.filter((p) => p.status === "In Progress").length;
   const finishedProjects = filteredProjects.filter((p) => p.status === "Finished").length;
   const overdueProjects = filteredProjects.filter((p) => {
-    if (p.isOverdue) return true;
-    if (p.dueDate && new Date(p.dueDate) < new Date() && p.status !== "Finished" && p.status !== "Cancelled") {
-      return true;
-    }
-    return false;
+    if (p.status === "Finished" || p.status === "Cancelled") return false;
+    return Boolean(p.isOverdue) || (Boolean(p.dueDate) && new Date(p.dueDate) < new Date());
   }).length;
 
   // Task KPIs
@@ -198,14 +197,13 @@ export default function AdminDashboard() {
   const inProgressTasks = filteredTasks.filter(
     (t) => t.status === "In Progress" || t.status === "Assigned"
   ).length;
-  const inReviewTasks = filteredTasks.filter((t) => t.status === "In Review").length;
+  const inReviewTasks = filteredTasks.filter(
+    (t) => t.status === "Review" || t.status === "In Review"
+  ).length;
   const finishedTasks = filteredTasks.filter((t) => t.status === "Completed").length;
   const overdueTasks = filteredTasks.filter((t) => {
-    if (t.isOverdue) return true;
-    if (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "Completed" && t.status !== "Cancelled") {
-      return true;
-    }
-    return false;
+    if (t.status === "Completed" || t.status === "Cancelled") return false;
+    return Boolean(t.isOverdue) || (Boolean(t.dueDate) && new Date(t.dueDate) < new Date());
   }).length;
 
   // Project Status Breakdown Data
@@ -225,6 +223,7 @@ export default function AdminDashboard() {
       name: st,
       count: filteredTasks.filter((t) => {
         if (st === "In Progress") return t.status === "In Progress" || t.status === "Assigned";
+        if (st === "In Review") return t.status === "In Review" || t.status === "Review";
         return t.status === st;
       }).length,
       color: TASK_STATUS_COLORS[st] || "#94a3b8",
@@ -259,9 +258,8 @@ export default function AdminDashboard() {
   const overdueProjectsList = useMemo(() => {
     const items: Project[] = [];
     filteredProjects.forEach((p) => {
-      const isOver =
-        p.isOverdue ||
-        Boolean(p.dueDate && new Date(p.dueDate) < new Date() && p.status !== "Finished" && p.status !== "Cancelled");
+      if (p.status === "Finished" || p.status === "Cancelled") return;
+      const isOver = Boolean(p.isOverdue) || (Boolean(p.dueDate) && new Date(p.dueDate) < new Date());
       if (isOver) items.push(p);
     });
 
@@ -276,9 +274,8 @@ export default function AdminDashboard() {
   const overdueTasksList = useMemo(() => {
     const items: Task[] = [];
     filteredTasks.forEach((t) => {
-      const isOver =
-        t.isOverdue ||
-        Boolean(t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "Completed" && t.status !== "Cancelled");
+      if (t.status === "Completed" || t.status === "Cancelled") return;
+      const isOver = Boolean(t.isOverdue) || (Boolean(t.dueDate) && new Date(t.dueDate) < new Date());
       if (isOver) items.push(t);
     });
 
@@ -542,12 +539,13 @@ export default function AdminDashboard() {
             const pTasks = (timeFilter === "all" ? tasks : filteredTasks).filter((t) => t.projectId === p.id);
             const pTotalTasks = pTasks.length;
             const pInProgress = pTasks.filter((t) => t.status === "In Progress" || t.status === "Assigned").length;
-            const pInReview = pTasks.filter((t) => t.status === "In Review").length;
+            const pInReview = pTasks.filter((t) => t.status === "In Review" || t.status === "Review").length;
             const pCompleted = pTasks.filter((t) => t.status === "Completed").length;
             const pOverdue = pTasks.filter(
               (t) =>
-                t.isOverdue ||
-                Boolean(t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "Completed" && t.status !== "Cancelled")
+                t.status !== "Completed" &&
+                t.status !== "Cancelled" &&
+                (Boolean(t.isOverdue) || Boolean(t.dueDate && new Date(t.dueDate) < new Date()))
             ).length;
 
             return [

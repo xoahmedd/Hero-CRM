@@ -52,21 +52,12 @@ function safeFormatDateTime(dateStr?: string | null): string {
 
 function checkIsOverdue(task: Task | null | undefined): boolean {
   if (!task) return false;
-  if (task.status === "Cancelled") return false;
+  if (task.status === "Cancelled" || task.status === "Completed") return false;
   if (task.isOverdue) return true;
   if (Boolean(task.missedDeadlineReason)) return true;
   if (!task.dueDate) return false;
   const dueTime = new Date(task.dueDate).getTime();
   if (isNaN(dueTime)) return false;
-
-  if (task.status === "Completed") {
-    if (task.completedAt) {
-      const compTime = new Date(task.completedAt).getTime();
-      if (!isNaN(compTime) && compTime > dueTime) return true;
-    }
-    return false;
-  }
-
   return dueTime < Date.now();
 }
 

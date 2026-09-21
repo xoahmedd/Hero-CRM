@@ -63,6 +63,8 @@ namespace Hero_CRM.Controllers
             var cancelledProjects = projects.Count(p => p.Status == ProjectStatus.Cancelled);
             var overdueProjects = projects.Count(p => p.DueDate.HasValue && p.DueDate < now && p.Status != ProjectStatus.Finished && p.Status != ProjectStatus.Cancelled);
 
+            var inProgressTasks = tasks.Count(t => t.Status == TaskItemStatus.Assigned);
+            var reviewTasks = tasks.Count(t => t.Status == TaskItemStatus.Review);
             var completedTasks = tasks.Count(t => t.Status == TaskItemStatus.Completed);
             var pendingTasks = tasks.Count(t => t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
             var overdueTasks = tasks.Count(t => t.DueDate.HasValue && t.DueDate < now && t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
@@ -150,6 +152,8 @@ namespace Hero_CRM.Controllers
                 CancelledProjects = cancelledProjects,
                 OverdueProjects = overdueProjects,
                 TotalTasks = tasks.Count,
+                InProgressTasks = inProgressTasks,
+                ReviewTasks = reviewTasks,
                 CompletedTasks = completedTasks,
                 PendingTasks = pendingTasks,
                 OverdueTasks = overdueTasks,
@@ -199,6 +203,8 @@ namespace Hero_CRM.Controllers
                 .Where(t => assignedTaskIds.Contains(t.Id))
                 .ToListAsync();
 
+            var inProgressTasksCount = userTasks.Count(t => t.Status == TaskItemStatus.Assigned);
+            var reviewTasksCount = userTasks.Count(t => t.Status == TaskItemStatus.Review);
             var activeTasksCount = userTasks.Count(t => t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
             var completedTasksCount = userTasks.Count(t => t.Status == TaskItemStatus.Completed);
             var overdueTasksCount = userTasks.Count(t => t.DueDate.HasValue && t.DueDate < now && t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled);
@@ -261,6 +267,8 @@ namespace Hero_CRM.Controllers
                 DeveloperName = user.FullName,
                 AssignedProjectsCount = assignedProjects.Count,
                 ActiveTasksCount = activeTasksCount,
+                InProgressTasksCount = inProgressTasksCount,
+                ReviewTasksCount = reviewTasksCount,
                 CompletedTasksCount = completedTasksCount,
                 OverdueTasksCount = overdueTasksCount,
                 UnreadNotificationsCount = unreadCount,

@@ -95,12 +95,10 @@ namespace Hero_CRM.Controllers
             }
 
             response.CompletedAt = task.CompletedAt;
-            response.IsOverdue = !string.IsNullOrEmpty(task.MissedDeadlineReason) ||
-                                 (task.DueDate.HasValue && (
-                                     task.Status == TaskItemStatus.Completed
-                                         ? (task.CompletedAt.HasValue && task.CompletedAt.Value > task.DueDate.Value)
-                                         : (task.DueDate.Value < DateTime.UtcNow && task.Status != TaskItemStatus.Cancelled)
-                                 ));
+            response.IsOverdue = task.Status != TaskItemStatus.Completed &&
+                                 task.Status != TaskItemStatus.Cancelled &&
+                                 task.DueDate.HasValue &&
+                                 task.DueDate.Value < DateTime.UtcNow;
             response.MissedDeadlineReason = task.MissedDeadlineReason;
             response.ReasonCategory = task.ReasonCategory;
 

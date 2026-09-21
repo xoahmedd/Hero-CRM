@@ -16,7 +16,12 @@ namespace Application.DTOs.Dashboard
         public int PendingProjects { get => InProgressProjects; set => InProgressProjects = value; }
 
         public int TotalTasks { get; set; }
+        public int InProgressTasks { get; set; }
+        public int AssignedTasks { get => InProgressTasks; set => InProgressTasks = value; }
+        public int ReviewTasks { get; set; }
+        public int InReviewTasks { get => ReviewTasks; set => ReviewTasks = value; }
         public int CompletedTasks { get; set; }
+        public int FinishedTasks { get => CompletedTasks; set => CompletedTasks = value; }
         public int PendingTasks { get; set; }
         public int OverdueTasks { get; set; }
 

@@ -51,21 +51,12 @@ function safeFormatDateTime(dateStr?: string | null): string {
 
 function checkIsOverdue(task: Task | null | undefined): boolean {
   if (!task) return false;
-  if (task.status === "Cancelled") return false;
+  if (task.status === "Cancelled" || task.status === "Completed") return false;
   if (task.isOverdue) return true;
   if (Boolean(task.missedDeadlineReason)) return true;
   if (!task.dueDate) return false;
   const dueTime = new Date(task.dueDate).getTime();
   if (isNaN(dueTime)) return false;
-
-  if (task.status === "Completed") {
-    if (task.completedAt) {
-      const compTime = new Date(task.completedAt).getTime();
-      if (!isNaN(compTime) && compTime > dueTime) return true;
-    }
-    return false;
-  }
-
   return dueTime < Date.now();
 }
 
@@ -678,10 +669,9 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
 
       {/* Project Header */}
       <Card style={{ padding: "28px 32px" }}>
-        {Boolean(
+        {project.status !== "Finished" && project.status !== "Cancelled" && Boolean(
           project.isOverdue ||
-          project.missedDeadlineReason ||
-          (project.dueDate && new Date(project.dueDate) < new Date() && project.status !== "Finished" && project.status !== "Cancelled")
+          (project.dueDate && new Date(project.dueDate) < new Date())
         ) && (
           project.missedDeadlineReason ? (
             <div className="mb-4 p-3 rounded-lg text-sm flex items-center justify-between" style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#b91c1c" }}>
@@ -710,10 +700,9 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                 {project.name}
               </h1>
               <Badge label={project.status || "In Progress"} />
-              {Boolean(
+              {project.status !== "Finished" && project.status !== "Cancelled" && Boolean(
                 project.isOverdue ||
-                project.missedDeadlineReason ||
-                (project.dueDate && new Date(project.dueDate) < new Date() && project.status !== "Finished" && project.status !== "Cancelled")
+                (project.dueDate && new Date(project.dueDate) < new Date())
               ) && <Badge label="Overdue" />}
               <Badge label={project.priority || "Medium"} type="priority" />
               {isAdmin && (

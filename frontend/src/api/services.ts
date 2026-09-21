@@ -89,9 +89,9 @@ export const projectsApi = {
         ownerName: p.ownerName || "Unassigned",
         requestingDepartment: p.requestingDepartment || "",
         missedDeadlineReason: p.missedDeadlineReason || null,
-        reasonCategory: p.reasonCategory || null,
-        isOverdue: Boolean(p.isOverdue) || Boolean(p.missedDeadlineReason) || Boolean(p.dueDate && new Date(p.dueDate) < new Date() && status === "In Progress"),
-        progress: typeof p.progress === "number" ? p.progress : (status === "Finished" ? 100 : 0),
+        isOverdue: (status === "Finished" || status === "Cancelled")
+          ? false
+          : (Boolean(p.isOverdue) || (Boolean(p.dueDate) && new Date(p.dueDate) < new Date())),
         requestedBy: p.requestedBy,
         businessJustification: p.businessJustification,
         rejectionReason: p.rejectionReason,
@@ -122,9 +122,9 @@ export const projectsApi = {
       ownerName: p.ownerName || "Unassigned",
       requestingDepartment: p.requestingDepartment || "",
       missedDeadlineReason: p.missedDeadlineReason || null,
-      reasonCategory: p.reasonCategory || null,
-      isOverdue: Boolean(p.isOverdue) || Boolean(p.missedDeadlineReason) || Boolean(p.dueDate && new Date(p.dueDate) < new Date() && status === "In Progress"),
-      progress: typeof p.progress === "number" ? p.progress : (status === "Finished" ? 100 : 0),
+      isOverdue: (status === "Finished" || status === "Cancelled")
+        ? false
+        : (Boolean(p.isOverdue) || (Boolean(p.dueDate) && new Date(p.dueDate) < new Date())),
       requestedBy: p.requestedBy,
       businessJustification: p.businessJustification,
       rejectionReason: p.rejectionReason,
@@ -215,15 +215,11 @@ export const tasksApi = {
       dueDate: t.dueDate ? t.dueDate.split("T")[0] : "",
       createdAt: t.createdAt ? t.createdAt.split("T")[0] : "",
       completedAt: t.completedAt ? t.completedAt : (t.status === "Completed" ? (t.updatedAt || t.createdAt || null) : null),
-      isOverdue: typeof t.isOverdue === "boolean"
-        ? t.isOverdue
-        : Boolean(t.missedDeadlineReason) || (
-            t.dueDate
-              ? (t.status === "Completed"
-                  ? (t.completedAt ? new Date(t.completedAt) > new Date(t.dueDate) : false)
-                  : (new Date(t.dueDate) < new Date() && t.status !== "Cancelled"))
-              : false
-          ),
+      isOverdue: (t.status === "Completed" || t.status === "Cancelled")
+        ? false
+        : (typeof t.isOverdue === "boolean"
+            ? t.isOverdue
+            : Boolean(t.dueDate && new Date(t.dueDate) < new Date())),
       missedDeadlineReason: t.missedDeadlineReason || null,
       reasonCategory: t.reasonCategory || null,
     }));
@@ -248,15 +244,11 @@ export const tasksApi = {
       dueDate: t.dueDate ? t.dueDate.split("T")[0] : "",
       createdAt: t.createdAt ? t.createdAt.split("T")[0] : "",
       completedAt: t.completedAt ? t.completedAt : (t.status === "Completed" ? (t.updatedAt || t.createdAt || null) : null),
-      isOverdue: typeof t.isOverdue === "boolean"
-        ? t.isOverdue
-        : Boolean(t.missedDeadlineReason) || (
-            t.dueDate
-              ? (t.status === "Completed"
-                  ? (t.completedAt ? new Date(t.completedAt) > new Date(t.dueDate) : false)
-                  : (new Date(t.dueDate) < new Date() && t.status !== "Cancelled"))
-              : false
-          ),
+      isOverdue: (t.status === "Completed" || t.status === "Cancelled")
+        ? false
+        : (typeof t.isOverdue === "boolean"
+            ? t.isOverdue
+            : Boolean(t.dueDate && new Date(t.dueDate) < new Date())),
       missedDeadlineReason: t.missedDeadlineReason || null,
       reasonCategory: t.reasonCategory || null,
     }));

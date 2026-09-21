@@ -36,8 +36,10 @@ namespace Hero_CRM.Mapping
             #region Project Mappings
             CreateMap<Project, ProjectResponse>()
                 .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src =>
-                    !string.IsNullOrEmpty(src.MissedDeadlineReason) ||
-                    (src.DueDate.HasValue && src.DueDate.Value < DateTime.UtcNow && src.Status != ProjectStatus.Finished && src.Status != ProjectStatus.Cancelled)));
+                    src.Status != ProjectStatus.Finished &&
+                    src.Status != ProjectStatus.Cancelled &&
+                    src.DueDate.HasValue &&
+                    src.DueDate.Value < DateTime.UtcNow));
             CreateMap<ProjectResponse, Project>();
 
             CreateMap<CreateProjectRequest, Project>()
@@ -55,12 +57,10 @@ namespace Hero_CRM.Mapping
             #region Task Mappings
             CreateMap<TaskItem, TaskResponse>()
                 .ForMember(dest => dest.IsOverdue, opt => opt.MapFrom(src =>
-                    !string.IsNullOrEmpty(src.MissedDeadlineReason) ||
-                    (src.DueDate.HasValue && (
-                        src.Status == TaskItemStatus.Completed
-                            ? (src.CompletedAt.HasValue && src.CompletedAt.Value > src.DueDate.Value)
-                            : (src.DueDate.Value < DateTime.UtcNow && src.Status != TaskItemStatus.Cancelled)
-                    ))));
+                    src.Status != TaskItemStatus.Completed &&
+                    src.Status != TaskItemStatus.Cancelled &&
+                    src.DueDate.HasValue &&
+                    src.DueDate.Value < DateTime.UtcNow));
             CreateMap<TaskResponse, TaskItem>();
             CreateMap<TaskAssignee, TaskAssigneeResponse>();
             CreateMap<CreateTaskRequest, TaskItem>()

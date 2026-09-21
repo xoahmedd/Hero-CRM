@@ -68,8 +68,9 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
   const activeTasks = myTasks.filter((t) => t.status !== "Completed" && t.status !== "Cancelled");
   const completedTasks = myTasks.filter((t) => t.status === "Completed");
   const overdueTasks = myTasks.filter((t) => {
+    if (t.status === "Completed" || t.status === "Cancelled") return false;
     const due = new Date(t.dueDate);
-    return (t.isOverdue || due < new Date()) && t.status !== "Completed" && t.status !== "Cancelled";
+    return (Boolean(t.isOverdue) || (Boolean(t.dueDate) && due < new Date()));
   });
   const pendingProjectReasons = projectsList.filter(
     (p) =>
@@ -179,8 +180,9 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
               {upcoming.map((task) => {
                 const due = new Date(task.dueDate);
                 const isOverdue =
-                  task.isOverdue ||
-                  (due < new Date() && task.status !== "Completed" && task.status !== "Cancelled");
+                  task.status !== "Completed" &&
+                  task.status !== "Cancelled" &&
+                  (Boolean(task.isOverdue) || (Boolean(task.dueDate) && due < new Date()));
                 return (
                   <div
                     key={task.id}
