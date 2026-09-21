@@ -307,6 +307,7 @@ export default function TasksPage({ currentUser }: Props) {
       const updated = await tasksApi.getTasks();
       setTasks(updated);
       setShowCreate(false);
+      window.dispatchEvent(new CustomEvent("refresh-notifications"));
       setCreateForm({
         title: "",
         description: "",

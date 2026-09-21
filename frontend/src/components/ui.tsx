@@ -206,3 +206,30 @@ export function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][
     </div>
   );
 }
+
+export function timeAgo(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  // Ensure UTC interpretation if timezone offset or Z is missing
+  const hasTimezone = dateStr.endsWith("Z") || /[+-]\d{2}(:\d{2})?$/.test(dateStr);
+  const normalizedStr = hasTimezone ? dateStr : `${dateStr}Z`;
+  const timestamp = new Date(normalizedStr).getTime();
+  if (isNaN(timestamp)) return "";
+
+  const diffMs = Date.now() - timestamp;
+  if (diffMs < 60000) return "Just now";
+
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 60) return `${mins}m ago`;
+
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+
+  return `${Math.floor(months / 12)}y ago`;
+}
+

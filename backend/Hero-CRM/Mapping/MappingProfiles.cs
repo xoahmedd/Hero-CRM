@@ -22,11 +22,15 @@ namespace Hero_CRM.Mapping
             ValueTransformers.Add<string>(val => val == null ? null! : val.Trim());
 
             #region Collaborations Mappings
-            CreateMap<Comment, CommentResponse>().ReverseMap();
+            CreateMap<Comment, CommentResponse>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc)))
+                .ReverseMap();
             CreateMap<CreateCommentRequest, Comment>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
-            CreateMap<Notification, NotificationResponse>().ReverseMap();
+            CreateMap<Notification, NotificationResponse>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc)))
+                .ReverseMap();
             #endregion
 
             #region Project Mappings

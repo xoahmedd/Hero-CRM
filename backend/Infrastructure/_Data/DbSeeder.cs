@@ -538,8 +538,8 @@ namespace Infrastructure._Data
                     Message = $"You have been assigned as Developer for the project '{projApex.Name}'.",
                     Type = NotificationType.ProjectAssigned,
                     ProjectId = projApex.Id,
-                    IsRead = true,
-                    CreatedAt = DateTime.UtcNow.AddDays(-30)
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow.AddMinutes(-45)
                 },
                 new Notification
                 {

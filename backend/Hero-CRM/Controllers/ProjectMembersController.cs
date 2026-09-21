@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.DTOs.Projects;
 using Application.Repos_Interfaces;
+using Application.Services_Interfaces;
 using Domain.Entities.Identity;
 using Domain.Entities.Projects;
 using Infrastructure._Data;
@@ -19,15 +20,18 @@ namespace Hero_CRM.Controllers
         private readonly IGenericRepository<Project> _projectRepo;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
         public ProjectMembersController(
             IGenericRepository<Project> projectRepo,
             UserManager<ApplicationUser> userManager,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            INotificationService notificationService)
         {
             _projectRepo = projectRepo;
             _userManager = userManager;
             _context = context;
+            _notificationService = notificationService;
         }
 
         // GET: api/Projects/1/members
@@ -157,6 +161,9 @@ namespace Hero_CRM.Controllers
             });
 
             await _context.SaveChangesAsync();
+
+            // Notify assigned developer
+            await _notificationService.NotifyProjectAssignmentAsync(userId, project.Id, project.Name);
 
             return Ok(new
             {

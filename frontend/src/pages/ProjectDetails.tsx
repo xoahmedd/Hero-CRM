@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Task, Project, User, Comment, Priority, TaskStatus, ProjectStatus } from "../types";
 import { projectsApi, tasksApi, commentsApi, projectMembersApi, usersApi } from "../api/services";
-import { Badge, Button, Card, Modal, ProgressBar, Select, Input } from "../components/ui";
+import { Badge, Button, Card, Modal, ProgressBar, Select, Input, timeAgo } from "../components/ui";
 import { PROJECT_STATUSES } from "./ProjectsPage";
 
 const TASK_STATUSES = ["Assigned", "Review", "Completed", "Cancelled"];
@@ -411,6 +411,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
       setProjectMembers(updated);
       setShowAddMemberModal(false);
       setSelectedNewMemberId(null);
+      window.dispatchEvent(new CustomEvent("refresh-notifications"));
     } catch (err: any) {
       alert(err?.message || "Failed to add member to project.");
     }

@@ -165,6 +165,7 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
       });
       const updated = await projectsApi.getProjects();
       setProjects(updated);
+      window.dispatchEvent(new CustomEvent("refresh-notifications"));
     } catch {
       const selectedDevs = usersList.filter((u) => createForm.memberIds.includes(u.id));
       const newProject: Project = {

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { User, Notification } from "../types";
 import { notificationsApi } from "../api/services";
+import { timeAgo } from "./ui";
 
 type Page =
   | "dashboard-admin"
@@ -48,72 +49,42 @@ const notifIcons: Record<string, string> = {
   DeadlineMissed: "⚠",
 };
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-const READ_NOTIFS_KEY = "hero_crm_read_notifs";
-
-function getLocalReadIds(userId?: number): Set<number> {
-  if (typeof window === "undefined" || !userId) return new Set();
-  try {
-    const raw = localStorage.getItem(`${READ_NOTIFS_KEY}_${userId}`);
-    if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) return new Set(arr);
-    }
-  } catch {}
-  return new Set();
-}
-
-function saveLocalReadId(userId: number | undefined, notifId: number) {
-  if (typeof window === "undefined" || !userId) return;
-  try {
-    const set = getLocalReadIds(userId);
-    set.add(notifId);
-    localStorage.setItem(`${READ_NOTIFS_KEY}_${userId}`, JSON.stringify(Array.from(set)));
-  } catch {}
-}
-
-function saveAllLocalReadIds(userId: number | undefined, notifIds: number[]) {
-  if (typeof window === "undefined" || !userId) return;
-  try {
-    const set = getLocalReadIds(userId);
-    notifIds.forEach((id) => set.add(id));
-    localStorage.setItem(`${READ_NOTIFS_KEY}_${userId}`, JSON.stringify(Array.from(set)));
-  } catch {}
-}
-
 export default function Layout({ currentUser, currentPage, onNavigate, children, onLogout }: LayoutProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  useEffect(() => {
+  const fetchNotifications = useCallback(() => {
     if (!currentUser?.id) return;
-    const readIds = getLocalReadIds(currentUser.id);
-
-    notificationsApi.getNotifications(currentUser.id)
+    notificationsApi
+      .getNotifications(currentUser.id)
       .then((data) => {
         if (Array.isArray(data)) {
-          const merged = data.map((n) =>
-            n.isRead || readIds.has(n.id) ? { ...n, isRead: true } : n
-          );
-          setNotifications(merged);
+          setNotifications(data);
         }
       })
       .catch(() => {});
   }, [currentUser?.id]);
 
+  useEffect(() => {
+    fetchNotifications();
+
+    // Poll every 10 seconds for real-time notification updates and badge updates
+    const interval = setInterval(fetchNotifications, 10000);
+
+    // Also listen for immediate refresh event dispatched across app actions
+    const handleRefresh = () => fetchNotifications();
+    window.addEventListener("refresh-notifications", handleRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("refresh-notifications", handleRefresh);
+    };
+  }, [fetchNotifications, currentPage]);
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   async function markAllRead() {
-    saveAllLocalReadIds(currentUser?.id, notifications.map((n) => n.id));
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     if (currentUser?.id) {
       try {
@@ -125,7 +96,6 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
   }
 
   async function markRead(id: number) {
-    saveLocalReadId(currentUser?.id, id);
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     try {
       await notificationsApi.markAsRead(id);
@@ -267,17 +237,22 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
             {/* Notifications */}
             <div className="relative">
               <button
-                onClick={() => setShowNotifs((s) => !s)}
+                onClick={() => {
+                  setShowNotifs((s) => !s);
+                  fetchNotifications();
+                }}
                 className="relative flex items-center justify-center rounded-xl transition-colors cursor-pointer"
                 style={{ width: 40, height: 40, background: showNotifs ? "#f1f5f9" : "transparent" }}
+                title="Notifications"
+                aria-label="Notifications"
               >
                 <span style={{ fontSize: 17 }}>🔔</span>
                 {unreadCount > 0 && (
                   <span
-                    className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-white font-bold"
-                    style={{ width: 18, height: 18, fontSize: 10, background: "#ef4444", fontFamily: "var(--font-mono)" }}
+                    className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-white font-bold pointer-events-none z-10 shadow-sm"
+                    style={{ minWidth: 18, height: 18, padding: "0 4px", fontSize: 10, background: "#ef4444", fontFamily: "var(--font-mono)" }}
                   >
-                    {unreadCount}
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </button>

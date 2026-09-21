@@ -369,13 +369,20 @@ namespace Hero_CRM.Controllers
             await _projectRepo.AddAsync(project);
             await _projectRepo.SaveChangesAsync();
 
-            // Add all assigned members to ProjectMembers
-            if (memberIds.Any())
+            // Add all assigned members and owner to ProjectMembers and notify
+            var allDevIdsToNotify = new HashSet<int>(memberIds);
+            if (project.OwnerId > 0 && project.OwnerId != CurrentUserId)
             {
-                foreach (var devId in memberIds)
+                allDevIdsToNotify.Add(project.OwnerId);
+            }
+
+            foreach (var devId in allDevIdsToNotify)
+            {
+                var dev = await _userManager.FindByIdAsync(devId.ToString());
+                if (dev != null)
                 {
-                    var dev = await _userManager.FindByIdAsync(devId.ToString());
-                    if (dev != null)
+                    var exists = await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == project.Id && pm.UserId == devId);
+                    if (!exists)
                     {
                         _context.ProjectMembers.Add(new ProjectMember
                         {
@@ -383,23 +390,16 @@ namespace Hero_CRM.Controllers
                             UserId = devId,
                             JoinedAt = DateTime.UtcNow
                         });
-
-                        // Notify assigned developer
-                        await _notificationService.NotifyProjectAssignmentAsync(devId, project.Id, project.Name);
                     }
+
+                    // Notify assigned developer
+                    await _notificationService.NotifyProjectAssignmentAsync(devId, project.Id, project.Name);
                 }
-                await _context.SaveChangesAsync();
             }
-            else if (project.OwnerId > 0 && project.OwnerId != CurrentUserId)
+
+            if (allDevIdsToNotify.Any())
             {
-                _context.ProjectMembers.Add(new ProjectMember
-                {
-                    ProjectId = project.Id,
-                    UserId = project.OwnerId,
-                    JoinedAt = DateTime.UtcNow
-                });
                 await _context.SaveChangesAsync();
-                await _notificationService.NotifyProjectAssignmentAsync(project.OwnerId, project.Id, project.Name);
             }
 
             var response = await MapToResponseAsync(project);

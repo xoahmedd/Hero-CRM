@@ -36,7 +36,10 @@ namespace Hero_CRM.Converters
         {
             if (value.HasValue)
             {
-                writer.WriteStringValue(value.Value.ToString("o", CultureInfo.InvariantCulture));
+                var utc = value.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+                    : value.Value.ToUniversalTime();
+                writer.WriteStringValue(utc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
             }
             else
             {

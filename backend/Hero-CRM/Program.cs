@@ -30,6 +30,7 @@ namespace Hero_CRM
             {
                 options.JsonSerializerOptions.Converters.Add(new Hero_CRM.Converters.ProjectStatusJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.JsonSerializerOptions.Converters.Add(new Hero_CRM.Converters.DateTimeConverter());
                 options.JsonSerializerOptions.Converters.Add(new Hero_CRM.Converters.NullableDateTimeConverter());
             });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
