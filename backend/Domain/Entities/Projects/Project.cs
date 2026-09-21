@@ -19,6 +19,7 @@ namespace Domain.Entities.Projects
         public string? MissedDeadlineReason { get; set; }
         public string? ReasonCategory { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         public ICollection<ProjectMember> Members { get; set; }

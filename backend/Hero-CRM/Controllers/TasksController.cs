@@ -127,6 +127,7 @@ namespace Hero_CRM.Controllers
                 if (project.Status != ProjectStatus.Finished)
                 {
                     project.Status = ProjectStatus.Finished;
+                    project.CompletedAt = DateTime.UtcNow;
                     project.UpdatedAt = DateTime.UtcNow;
                     _projectRepo.Update(project);
                     await _projectRepo.SaveChangesAsync();
@@ -137,6 +138,7 @@ namespace Hero_CRM.Controllers
                 if (project.Status == ProjectStatus.Finished)
                 {
                     project.Status = ProjectStatus.InProgress;
+                    project.CompletedAt = null;
                     project.UpdatedAt = DateTime.UtcNow;
                     _projectRepo.Update(project);
                     await _projectRepo.SaveChangesAsync();

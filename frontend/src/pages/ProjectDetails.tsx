@@ -721,7 +721,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
               )}
             </div>
             <p className="text-sm mb-4" style={{ color: "var(--color-muted-foreground)" }}>{project.description}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+            <div className={`grid grid-cols-1 ${project.status === "Finished" ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-4 text-sm`}>
               {[
                 {
                   label: "Assigned Developers",
@@ -731,10 +731,15 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                 },
                 { label: "Department", value: project.requestingDepartment || "—" },
                 { label: "Due Date", value: safeFormatDate(project.dueDate) },
+                ...(project.status === "Finished" ? [{
+                  label: "Completed at",
+                  value: safeFormatDate(project.completedAt || project.updatedAt),
+                  color: "#15803d"
+                }] : []),
               ].map((info) => (
                 <div key={info.label}>
                   <div className="text-xs mb-0.5" style={{ color: "var(--color-muted-foreground)" }}>{info.label}</div>
-                  <div className="font-semibold truncate" style={{ color: "var(--color-foreground)" }}>{info.value}</div>
+                  <div className="font-semibold truncate" style={{ color: (info as any).color || "var(--color-foreground)" }}>{info.value}</div>
                 </div>
               ))}
             </div>
@@ -1550,6 +1555,18 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
                   options={["Low", "Medium", "High", "Urgent"].map((s) => ({ value: s, label: s }))}
                 />
               </div>
+              {(editProjectForm.status === "Finished" || project?.status === "Finished") && (
+                <div className="col-span-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between text-emerald-900">
+                  <span className="font-semibold">Completed at:</span>
+                  <span className="font-mono font-medium">
+                    {project?.completedAt
+                      ? safeFormatDate(project.completedAt)
+                      : (project?.updatedAt
+                          ? safeFormatDate(project.updatedAt)
+                          : "Upon saving")}
+                  </span>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>
                   Start Date

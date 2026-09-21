@@ -412,6 +412,26 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                     </span>
                     Due date
                   </div>
+                  {project.status === "Finished" && (
+                    <div className="col-span-2 pt-2 mt-1 border-t border-slate-100 flex items-center justify-between">
+                      <span className="font-medium text-emerald-700">Completed at</span>
+                      <span className="font-semibold text-emerald-800" style={{ fontFamily: "var(--font-mono)" }}>
+                        {project.completedAt
+                          ? new Date(project.completedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : (project.updatedAt
+                              ? new Date(project.updatedAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : "—")}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2.5 mt-2">
@@ -675,9 +695,32 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                 <Select
                   value={editForm.priority}
                   onChange={(v) => setEditForm((f) => ({ ...f, priority: v as Priority }))}
-                  options={["Low", "Medium", "High", "Urgent"].map((s) => ({ value: s, label: s }))}
+                  options={["Low", "Medium", "High", "Urgent"].map((p) => ({
+                    value: p,
+                    label: p,
+                  }))}
                 />
               </div>
+              {(editForm.status === "Finished" || editingProject?.status === "Finished") && (
+                <div className="col-span-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between text-emerald-900">
+                  <span className="font-semibold">Completed at:</span>
+                  <span className="font-mono font-medium">
+                    {editingProject?.completedAt
+                      ? new Date(editingProject.completedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : (editingProject?.updatedAt
+                          ? new Date(editingProject.updatedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "Upon saving")}
+                  </span>
+                </div>
+              )}
               <div>
                 <label
                   className="block text-sm font-medium mb-1"

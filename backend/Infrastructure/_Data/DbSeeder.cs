@@ -122,6 +122,7 @@ namespace Infrastructure._Data
                 Priority = ProjectPriority.High,
                 StartDate = DateTime.UtcNow.AddDays(-90),
                 DueDate = DateTime.UtcNow.AddDays(-15),
+                CompletedAt = DateTime.UtcNow.AddDays(-16),
                 OwnerId = devJames.Id,
                 RequestingDepartment = "Legal",
                 CreatedAt = DateTime.UtcNow.AddDays(-90)
@@ -161,6 +162,7 @@ namespace Infrastructure._Data
                 Priority = ProjectPriority.Low,
                 StartDate = DateTime.UtcNow.AddDays(-120),
                 DueDate = DateTime.UtcNow.AddDays(-30),
+                CompletedAt = DateTime.UtcNow.AddDays(-32),
                 OwnerId = devMarco!.Id,
                 RequestingDepartment = "IT",
                 CreatedAt = DateTime.UtcNow.AddDays(-120)

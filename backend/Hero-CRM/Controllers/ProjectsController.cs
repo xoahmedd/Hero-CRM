@@ -111,11 +111,14 @@ namespace Hero_CRM.Controllers
                 if (isAutoFinished && project.Status != ProjectStatus.Finished)
                 {
                     project.Status = ProjectStatus.Finished;
+                    project.CompletedAt = DateTime.UtcNow;
                     response.Status = ProjectStatus.Finished;
+                    response.CompletedAt = project.CompletedAt;
                     var dbProj = await _context.Projects.FindAsync(project.Id);
                     if (dbProj != null && dbProj.Status != ProjectStatus.Finished)
                     {
                         dbProj.Status = ProjectStatus.Finished;
+                        dbProj.CompletedAt = project.CompletedAt;
                         dbProj.UpdatedAt = DateTime.UtcNow;
                         await _context.SaveChangesAsync();
                     }
@@ -123,15 +126,23 @@ namespace Hero_CRM.Controllers
                 else if (!isAutoFinished && project.Status == ProjectStatus.Finished)
                 {
                     project.Status = ProjectStatus.InProgress;
+                    project.CompletedAt = null;
                     response.Status = ProjectStatus.InProgress;
+                    response.CompletedAt = null;
                     var dbProj = await _context.Projects.FindAsync(project.Id);
                     if (dbProj != null && dbProj.Status == ProjectStatus.Finished)
                     {
                         dbProj.Status = ProjectStatus.InProgress;
+                        dbProj.CompletedAt = null;
                         dbProj.UpdatedAt = DateTime.UtcNow;
                         await _context.SaveChangesAsync();
                     }
                 }
+            }
+
+            if (response.Status == ProjectStatus.Finished && !response.CompletedAt.HasValue)
+            {
+                response.CompletedAt = project.CompletedAt ?? project.UpdatedAt ?? project.DueDate ?? project.CreatedAt;
             }
 
             return response;
@@ -365,6 +376,10 @@ namespace Hero_CRM.Controllers
             var project = _mapper.Map<Project>(request);
             project.OwnerId = resolvedOwnerId;
             project.CreatedAt = DateTime.UtcNow;
+            if (project.Status == ProjectStatus.Finished)
+            {
+                project.CompletedAt = DateTime.UtcNow;
+            }
 
             await _projectRepo.AddAsync(project);
             await _projectRepo.SaveChangesAsync();
@@ -528,6 +543,15 @@ namespace Hero_CRM.Controllers
             var previousOwnerId = project.OwnerId;
 
             _mapper.Map(request, project);
+            if (project.Status == ProjectStatus.Finished && !project.CompletedAt.HasValue)
+            {
+                project.CompletedAt = DateTime.UtcNow;
+            }
+            else if (project.Status != ProjectStatus.Finished)
+            {
+                project.CompletedAt = null;
+            }
+
             if (!string.IsNullOrEmpty(request.ReasonCategory))
             {
                 project.ReasonCategory = request.ReasonCategory;

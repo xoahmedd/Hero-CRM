@@ -556,7 +556,16 @@ export default function AdminDashboard() {
                 {p.requestingDepartment || "—"}
               </span>,
               <Badge key="pri" label={p.priority} type="priority" />,
-              <Badge key="st" label={p.status} />,
+              <div key="st" className="flex flex-col gap-0.5">
+                <Badge label={p.status} />
+                {p.status === "Finished" && (
+                  <span className="text-[10px] text-emerald-700 font-medium whitespace-nowrap" style={{ fontFamily: "var(--font-mono)" }}>
+                    Done {p.completedAt
+                      ? new Date(p.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      : (p.updatedAt ? new Date(p.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "")}
+                  </span>
+                )}
+              </div>,
               <span key="total" className="font-semibold text-center block" style={{ fontFamily: "var(--font-mono)" }}>
                 {pTotalTasks}
               </span>,

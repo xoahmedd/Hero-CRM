@@ -45,6 +45,7 @@ export interface Project {
   members?: ProjectMember[];
   isOverdue?: boolean;
   createdAt?: string;
+  completedAt?: string | null;
   updatedAt?: string;
 }
 
