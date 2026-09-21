@@ -141,6 +141,8 @@ namespace Hero_CRM.Controllers
                 var owner = users.FirstOrDefault(u => u.Id == p.OwnerId);
                 var resp = _mapper.Map<ProjectResponse>(p);
                 resp.OwnerName = owner?.FullName;
+                var projTasks = tasks.Where(t => t.ProjectId == p.Id && t.Status != TaskItemStatus.Cancelled).ToList();
+                resp.Progress = p.Status == ProjectStatus.Finished ? 100 : (projTasks.Count > 0 ? (int)Math.Round((double)projTasks.Count(t => t.Status == TaskItemStatus.Completed) / projTasks.Count * 100) : 0);
                 recentProjectsList.Add(resp);
             }
 
@@ -190,6 +192,8 @@ namespace Hero_CRM.Controllers
             {
                 var resp = _mapper.Map<ProjectResponse>(p);
                 resp.OwnerName = user.FullName;
+                var projTasks = await _context.TaskItems.Where(t => t.ProjectId == p.Id && t.Status != TaskItemStatus.Cancelled).ToListAsync();
+                resp.Progress = p.Status == ProjectStatus.Finished ? 100 : (projTasks.Count > 0 ? (int)Math.Round((double)projTasks.Count(t => t.Status == TaskItemStatus.Completed) / projTasks.Count * 100) : 0);
                 assignedProjectResponses.Add(resp);
             }
 

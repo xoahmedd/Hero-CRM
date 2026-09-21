@@ -104,6 +104,7 @@ export const projectsApi = {
         memberIds: (p.members || []).map((m: any) => m.userId),
         createdAt: p.createdAt || (p.startDate ? p.startDate : undefined),
         completedAt: p.completedAt ? p.completedAt : (status === "Finished" ? (p.updatedAt || p.dueDate || p.createdAt || null) : null),
+        progress: status === "Finished" ? 100 : (typeof p.progress === "number" ? p.progress : 0),
         updatedAt: p.updatedAt,
       };
     });
@@ -139,6 +140,7 @@ export const projectsApi = {
       memberIds: (p.members || []).map((m: any) => m.userId),
       createdAt: p.createdAt || (p.startDate ? p.startDate : undefined),
       completedAt: p.completedAt ? p.completedAt : (status === "Finished" ? (p.updatedAt || p.dueDate || p.createdAt || null) : null),
+      progress: status === "Finished" ? 100 : (typeof p.progress === "number" ? p.progress : 0),
       updatedAt: p.updatedAt,
     };
   },

@@ -354,14 +354,14 @@ export default function ProjectsPage({ currentUser, onViewProject }: Props) {
                     </span>
                     <span
                       className="text-xs"
-                      style={{ fontFamily: "var(--font-mono)", color: "var(--color-muted-foreground)" }}
+                      style={{ fontFamily: "var(--font-mono)", color: project.status === "Finished" ? "#15803d" : "var(--color-muted-foreground)" }}
                     >
-                      {project.progress}%
+                      {project.status === "Finished" ? 100 : (project.progress ?? 0)}%
                     </span>
                   </div>
                   <ProgressBar
-                    value={project.progress}
-                    color={isProjectOverdue ? "#ef4444" : "#1a3896"}
+                    value={project.status === "Finished" ? 100 : (project.progress ?? 0)}
+                    color={project.status === "Finished" ? "#22c55e" : isProjectOverdue ? "#ef4444" : "#1a3896"}
                   />
                 </div>
 

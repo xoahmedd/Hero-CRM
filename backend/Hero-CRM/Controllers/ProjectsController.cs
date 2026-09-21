@@ -99,7 +99,15 @@ namespace Hero_CRM.Controllers
             var nonCancelledTasks = allTasks.Where(s => s != TaskItemStatus.Cancelled).ToList();
             var totalTasks = nonCancelledTasks.Count;
             var completedTasks = nonCancelledTasks.Count(s => s == TaskItemStatus.Completed);
-            response.Progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
+            
+            if (project.Status == ProjectStatus.Finished)
+            {
+                response.Progress = 100;
+            }
+            else
+            {
+                response.Progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
+            }
 
             // Auto-sync project status if tasks exist and project is not cancelled
             if (allTasks.Count > 0 && project.Status != ProjectStatus.Cancelled)
@@ -114,6 +122,7 @@ namespace Hero_CRM.Controllers
                     project.CompletedAt = DateTime.UtcNow;
                     response.Status = ProjectStatus.Finished;
                     response.CompletedAt = project.CompletedAt;
+                    response.Progress = 100;
                     var dbProj = await _context.Projects.FindAsync(project.Id);
                     if (dbProj != null && dbProj.Status != ProjectStatus.Finished)
                     {
@@ -129,6 +138,7 @@ namespace Hero_CRM.Controllers
                     project.CompletedAt = null;
                     response.Status = ProjectStatus.InProgress;
                     response.CompletedAt = null;
+                    response.Progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
                     var dbProj = await _context.Projects.FindAsync(project.Id);
                     if (dbProj != null && dbProj.Status == ProjectStatus.Finished)
                     {

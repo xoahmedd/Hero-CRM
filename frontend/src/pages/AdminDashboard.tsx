@@ -548,6 +548,13 @@ export default function AdminDashboard() {
                 (Boolean(t.isOverdue) || Boolean(t.dueDate && new Date(t.dueDate) < new Date()))
             ).length;
 
+            const pNonCancelled = pTasks.filter((t) => t.status !== "Cancelled").length;
+            const projectProgress = p.status === "Finished"
+              ? 100
+              : (pNonCancelled > 0
+                  ? Math.round((pCompleted / pNonCancelled) * 100)
+                  : (typeof p.progress === "number" ? p.progress : 0));
+
             return [
               <span key="name" className="font-medium" style={{ color: "var(--color-foreground)" }}>
                 {p.name}
@@ -598,12 +605,12 @@ export default function AdminDashboard() {
                 {pOverdue}
               </span>,
               <div key="prog" style={{ width: 120 }}>
-                <ProgressBar value={p.progress} color={p.status === "Finished" ? "#22c55e" : "#1a3896"} />
+                <ProgressBar value={projectProgress} color={p.status === "Finished" ? "#22c55e" : "#1a3896"} />
                 <span
                   className="text-xs mt-1 inline-block"
-                  style={{ fontFamily: "var(--font-mono)", color: "var(--color-muted-foreground)" }}
+                  style={{ fontFamily: "var(--font-mono)", color: projectProgress === 100 ? "#15803d" : "var(--color-muted-foreground)" }}
                 >
-                  {p.progress}%
+                  {projectProgress}%
                 </span>
               </div>,
             ];

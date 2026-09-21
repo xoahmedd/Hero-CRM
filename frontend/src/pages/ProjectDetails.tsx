@@ -331,7 +331,7 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
   const totalTasks = relevantTasks.length;
   const completed = relevantTasks.filter((t) => t && t.status === "Completed").length;
   const activeCount = relevantTasks.filter((t) => t && (t.status === "Assigned" || t.status === "Review")).length;
-  const completionRate = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+  const completionRate = project?.status === "Finished" ? 100 : (totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0);
 
   async function updateTaskStatus(taskId: number, status: string) {
     const isNowCompleted = status === "Completed";
@@ -747,8 +747,8 @@ export default function ProjectDetails({ projectId, currentUser, onBack }: Props
 
           <div className="rounded-xl p-4 min-w-40" style={{ background: "#f8fafc", border: "1px solid var(--color-border)" }}>
             <div className="text-xs mb-1" style={{ color: "var(--color-muted-foreground)", fontFamily: "var(--font-display)" }}>Completion</div>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, color: "#1a3896" }}>{completionRate}%</div>
-            <ProgressBar value={completionRate} />
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, color: project?.status === "Finished" ? "#15803d" : "#1a3896" }}>{completionRate}%</div>
+            <ProgressBar value={completionRate} color={project?.status === "Finished" ? "#22c55e" : "#1a3896"} />
             <div className="grid grid-cols-3 gap-2 mt-3 text-center">
               {[
                 { label: "Total", val: totalTasks },

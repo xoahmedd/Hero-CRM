@@ -270,9 +270,15 @@ export default function DeveloperDashboard({ currentUser, onNavigateProject }: P
                   <div className="text-xs mb-3" style={{ color: "var(--color-muted-foreground)" }}>
                     Due {new Date(project.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </div>
-                  <ProgressBar value={project.progress} color={project.status === "Overdue" ? "#ef4444" : "#1a3896"} />
-                  <div className="text-xs mt-1" style={{ fontFamily: "var(--font-mono)", color: "var(--color-muted-foreground)" }}>
-                    {project.progress}% complete
+                  <ProgressBar
+                    value={project.status === "Finished" ? 100 : (project.progress ?? 0)}
+                    color={project.status === "Finished" ? "#22c55e" : project.status === "Overdue" ? "#ef4444" : "#1a3896"}
+                  />
+                  <div
+                    className="text-xs mt-1"
+                    style={{ fontFamily: "var(--font-mono)", color: project.status === "Finished" ? "#15803d" : "var(--color-muted-foreground)" }}
+                  >
+                    {project.status === "Finished" ? 100 : (project.progress ?? 0)}% complete
                   </div>
                 </button>
               ))}

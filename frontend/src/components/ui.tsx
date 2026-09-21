@@ -77,9 +77,10 @@ export function SectionHeader({ title, action }: { title: string; action?: React
 }
 
 export function ProgressBar({ value, color = "#1a3896" }: { value: number; color?: string }) {
+  const safeValue = Math.min(Math.max(Number(value) || 0, 0), 100);
   return (
     <div className="w-full rounded-full overflow-hidden" style={{ height: 7, background: "#f1f5f9" }}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
+      <div className="h-full rounded-full transition-all" style={{ width: `${safeValue}%`, background: color }} />
     </div>
   );
 }
