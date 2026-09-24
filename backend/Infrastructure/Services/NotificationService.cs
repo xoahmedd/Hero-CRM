@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Common;
 using Application.Repos_Interfaces;
 using Application.Services_Interfaces;
 using Domain.Entities.Collaborations;
@@ -111,7 +112,7 @@ namespace Infrastructure.Services
             await SendNotificationAsync(
                 userId,
                 "Deadline Reminder: 24h Remaining",
-                $"Reminder: {itemKind} '{itemTitle}' is due in 24 hours (on {dueDate:yyyy-MM-dd HH:mm} UTC). Please ensure all remaining tasks and updates are completed on time.",
+                $"Reminder: {itemKind} '{itemTitle}' is due in 24 hours (on {CairoTimeHelper.Format(dueDate)}). Please ensure all remaining tasks and updates are completed on time.",
                 NotificationType.DeadlineApproaching,
                 projectId: projectId,
                 taskId: taskId,
@@ -125,7 +126,7 @@ namespace Infrastructure.Services
             await SendNotificationAsync(
                 userId,
                 $"Deadline Reached: {itemKind}",
-                $"The deadline for {itemKind.ToLower()} '{itemTitle}' has arrived ({dueDate:yyyy-MM-dd HH:mm} UTC). Please complete any remaining work or submit a reason for missing the deadline.",
+                $"The deadline for {itemKind.ToLower()} '{itemTitle}' has arrived ({CairoTimeHelper.Format(dueDate)}). Please complete any remaining work or submit a reason for missing the deadline.",
                 NotificationType.DeadlineMissed,
                 projectId: projectId,
                 taskId: taskId,

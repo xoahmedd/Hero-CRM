@@ -234,3 +234,26 @@ export function timeAgo(dateStr?: string | null): string {
   return `${Math.floor(months / 12)}y ago`;
 }
 
+export function formatCairoTime(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const hasTimezone = dateStr.endsWith("Z") || /[+-]\d{2}(:\d{2})?$/.test(dateStr);
+  const normalizedStr = hasTimezone ? dateStr : `${dateStr}Z`;
+  const date = new Date(normalizedStr);
+  if (isNaN(date.getTime())) return "";
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  } catch {
+    return date.toLocaleString();
+  }
+}
+
+

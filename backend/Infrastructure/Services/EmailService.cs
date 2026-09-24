@@ -219,7 +219,7 @@ namespace Infrastructure.Services
                             </table>
 
                             <p style=""font-size: 12px; color: #94a3b8; margin: 26px 0 0 0; font-family: monospace;"">
-                                Triggered at {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC
+                                Sent at {CairoTimeHelper.Format(DateTime.UtcNow)}
                             </p>
                         </td>
                     </tr>

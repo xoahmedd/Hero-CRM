@@ -173,7 +173,7 @@ namespace Hero_CRM.Controllers
             }
 
             var title = "Hero CRM Notification Test";
-            var message = $"Hello {user.FullName}! This notification verifies that in-app alerts and email notifications are delivered simultaneously to {targetEmail}.";
+            var message = $"Hello {user.FullName}! This notification verifies that in-app alerts and email notifications are delivered simultaneously to {targetEmail} at {CairoTimeHelper.Format(DateTime.UtcNow)}.";
 
             await _notificationService.SendNotificationAsync(
                 userId,

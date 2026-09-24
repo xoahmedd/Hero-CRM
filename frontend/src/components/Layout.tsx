@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { User, Notification } from "../types";
 import { notificationsApi } from "../api/services";
-import { timeAgo } from "./ui";
+import { timeAgo, formatCairoTime } from "./ui";
 
 type Page =
   | "dashboard-admin"
@@ -53,35 +53,6 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sendingTestEmail, setSendingTestEmail] = useState(false);
-  const [emailStatusMsg, setEmailStatusMsg] = useState<string | null>(null);
-  const [isEmailConfigured, setIsEmailConfigured] = useState<boolean | null>(null);
-  const [emailStatusType, setEmailStatusType] = useState<"success" | "warning">("success");
-
-  useEffect(() => {
-    notificationsApi.getEmailStatus()
-      .then((data) => setIsEmailConfigured(data.isConfigured))
-      .catch(() => {});
-  }, []);
-
-  async function handleSendTestEmail() {
-    setSendingTestEmail(true);
-    setEmailStatusMsg(null);
-    try {
-      const res = await notificationsApi.sendTestEmail();
-      setIsEmailConfigured(res?.isConfigured ?? false);
-      setEmailStatusType(res?.isConfigured ? "success" : "warning");
-      setEmailStatusMsg(res?.message || (res?.isConfigured ? `Real email delivered to ${currentUser.email}!` : `In-app alert sent! SMTP credentials not configured in appsettings.json.`));
-      fetchNotifications();
-      setTimeout(() => setEmailStatusMsg(null), 8000);
-    } catch (err: any) {
-      setEmailStatusType("warning");
-      setEmailStatusMsg(err?.message || "Failed to send test email.");
-      setTimeout(() => setEmailStatusMsg(null), 8000);
-    } finally {
-      setSendingTestEmail(false);
-    }
-  }
 
   const fetchNotifications = useCallback(() => {
     if (!currentUser?.id) return;
@@ -310,34 +281,6 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
                       </button>
                     )}
                   </div>
-                  {/* Email sync indicator */}
-                  <div className="px-4 py-2 bg-slate-50 border-b flex items-center justify-between text-xs" style={{ borderColor: "var(--color-border)" }}>
-                    <div className="flex items-center gap-1.5 text-slate-600 truncate min-w-0">
-                      <span className="text-sm flex-shrink-0">📧</span>
-                      <span className="truncate">
-                        Emails to: <strong className="font-semibold text-slate-800">{currentUser.email}</strong>
-                        {isEmailConfigured === false && (
-                          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-medium">SMTP Unset</span>
-                        )}
-                        {isEmailConfigured === true && (
-                          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-medium">Live SMTP</span>
-                        )}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleSendTestEmail}
-                      disabled={sendingTestEmail}
-                      className="ml-2 px-2 py-0.5 text-[11px] font-medium rounded text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors whitespace-nowrap cursor-pointer disabled:opacity-50"
-                      title="Send a test notification & email to verify delivery"
-                    >
-                      {sendingTestEmail ? "Sending..." : "Test Email"}
-                    </button>
-                  </div>
-                  {emailStatusMsg && (
-                    <div className={`px-4 py-2 border-b text-[11px] font-medium leading-relaxed ${emailStatusType === "success" ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
-                      {emailStatusMsg}
-                    </div>
-                  )}
                   <div className="overflow-y-auto" style={{ maxHeight: 360 }}>
                     {notifications.length === 0 ? (
                       <div className="py-8 text-center text-xs text-slate-400">
@@ -375,8 +318,10 @@ export default function Layout({ currentUser, currentPage, onNavigate, children,
                             <div className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
                               {n.message}
                             </div>
-                            <div className="text-xs mt-1" style={{ color: "#94a3b8", fontFamily: "var(--font-mono)" }}>
-                              {timeAgo(n.createdAt)}
+                            <div className="text-xs mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: "#94a3b8", fontFamily: "var(--font-mono)" }}>
+                              <span>{timeAgo(n.createdAt)}</span>
+                              {n.createdAt && <span>•</span>}
+                              {n.createdAt && <span>{formatCairoTime(n.createdAt)} (Cairo)</span>}
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-1 flex-shrink-0 mt-1">
