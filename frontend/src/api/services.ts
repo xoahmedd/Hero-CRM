@@ -391,4 +391,16 @@ export const notificationsApi = {
   async markAllAsRead(userId: number): Promise<any> {
     return await apiClient.patch(`/Notifications/user/${userId}/read-all`);
   },
+
+  async getEmailStatus(): Promise<{ isConfigured: boolean }> {
+    return await apiClient.get("/Notifications/email-status");
+  },
+
+  async sendTestEmail(targetEmail?: string): Promise<{ success: boolean; isConfigured: boolean; message: string; email: string }> {
+    return await apiClient.post("/Notifications/test-email", { targetEmail });
+  },
+
+  async checkDeadlines(): Promise<{ success: boolean; count: number; message: string }> {
+    return await apiClient.post("/Notifications/check-deadlines");
+  },
 };

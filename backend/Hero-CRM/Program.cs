@@ -122,6 +122,7 @@ namespace Hero_CRM
             builder.Services.AddAutoMapper(typeof(MappingProfiles));
 
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddHostedService<DeadlineCheckBackgroundService>();

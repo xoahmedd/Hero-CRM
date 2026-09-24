@@ -1,12 +1,16 @@
 using Application.Common;
 using Application.DTOs.Collaborations.Notification;
 using Application.Repos_Interfaces;
+using Application.Services_Interfaces;
 using AutoMapper;
 using Domain.Entities.Collaborations;
+using Domain.Entities.Identity;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Hero_CRM.Controllers
 {
@@ -16,13 +20,22 @@ namespace Hero_CRM.Controllers
     public class NotificationsController : ControllerBase
     {
         private readonly IGenericRepository<Notification> _notificationRepo;
+        private readonly INotificationService _notificationService;
+        private readonly IEmailService _emailService;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMapper _mapper;
 
         public NotificationsController(
             IGenericRepository<Notification> notificationRepo,
+            INotificationService notificationService,
+            IEmailService emailService,
+            UserManager<ApplicationUser> userManager,
             IMapper mapper)
         {
             _notificationRepo = notificationRepo;
+            _notificationService = notificationService;
+            _emailService = emailService;
+            _userManager = userManager;
             _mapper = mapper;
         }
 
@@ -125,5 +138,80 @@ namespace Hero_CRM.Controllers
                 unreadCount = count
             });
         }
+
+        [HttpGet("email-status")]
+        public IActionResult GetEmailStatus()
+        {
+            return Ok(new
+            {
+                isConfigured = _emailService.IsConfigured
+            });
+        }
+
+        [HttpPost("test-email")]
+        public async Task<IActionResult> SendTestEmail([FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] TestEmailRequest? request = null)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value
+                ?? User.FindFirst("id")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User is not authenticated." });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            var targetEmail = !string.IsNullOrWhiteSpace(request?.TargetEmail) ? request.TargetEmail.Trim() : user.Email;
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                return BadRequest(new { message = "No valid email address found for this user." });
+            }
+
+            var title = "Hero CRM Notification Test";
+            var message = $"Hello {user.FullName}! This notification verifies that in-app alerts and email notifications are delivered simultaneously to {targetEmail}.";
+
+            await _notificationService.SendNotificationAsync(
+                userId,
+                title,
+                message,
+                NotificationType.General,
+                itemName: "Hero CRM Email Integration");
+
+            bool isConfigured = _emailService.IsConfigured;
+
+            return Ok(new
+            {
+                success = true,
+                isConfigured = isConfigured,
+                email = targetEmail,
+                message = isConfigured
+                    ? $"Notification created and email successfully sent to {targetEmail}!"
+                    : $"In-app notification created! However, live email delivery to Gmail requires setting 'EmailSettings:SenderEmail' and your Google App Password in 'EmailSettings:SenderPassword' in appsettings.json."
+            });
+        }
+
+        [HttpPost("check-deadlines")]
+        public async Task<IActionResult> CheckDeadlines()
+        {
+            var count = await _notificationService.CheckAndSendDeadlineNotificationsAsync();
+            return Ok(new
+            {
+                success = true,
+                count,
+                message = count > 0
+                    ? $"Deadline check completed: {count} notification(s) and email(s) dispatched."
+                    : "Deadline check completed: No new deadline reminders or alerts were needed at this time."
+            });
+        }
+    }
+
+    public class TestEmailRequest
+    {
+        public string? TargetEmail { get; set; }
     }
 }
